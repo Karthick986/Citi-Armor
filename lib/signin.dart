@@ -230,7 +230,6 @@ class _SigninPageState extends State<SigninPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: backgroundColor,
         body: Center(
           child: ListView(
             shrinkWrap: true,
@@ -245,7 +244,7 @@ class _SigninPageState extends State<SigninPage> {
                       borderRadius: BorderRadius.circular(36.0),
                       image: const DecorationImage(
                           image: AssetImage(
-                            "assets/images/signup.jpg",
+                            "assets/images/login.jpeg",
                           ), fit: BoxFit.cover)
                   ),
                 ),

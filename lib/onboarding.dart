@@ -15,28 +15,28 @@ class _OnboardingPageState extends State<OnboardingPage> {
   final _pageList = [
     PageModel(
         color: Colors.white,
-        imageAssetPath: 'assets/images/signup.jpg',
+        imageAssetPath: 'assets/images/1.png',
         title: 'Tutorial 1',
         body: 'This is description of tutorial 1. Lorem ipsum dolor sit amet.',
         doAnimateImage: true),
     PageModel(
         color: Colors.white,
-        imageAssetPath: 'assets/images/signup.jpg',
+        imageAssetPath: 'assets/images/2.png',
         title: 'Tutorial 2',
         body: 'This is description of tutorial 2. Lorem ipsum dolor sit amet.',
         doAnimateImage: true),
     PageModel(
         color: Colors.white,
-        imageAssetPath: 'assets/images/signup.jpg',
+        imageAssetPath: 'assets/images/3.png',
         title: 'Tutorial 3',
         body: 'This is description of tutorial 3. Lorem ipsum dolor sit amet.',
         doAnimateImage: true),
-    PageModel(
-        color: Colors.white,
-        imageAssetPath: 'assets/images/signup.jpg',
-        title: 'Tutorial 4',
-        body: 'This is description of tutorial 4. Lorem ipsum dolor sit amet.',
-        doAnimateImage: true),
+    // PageModel(
+    //     color: Colors.white,
+    //     imageAssetPath: 'assets/images/signup.jpg',
+    //     title: 'Tutorial 4',
+    //     body: 'This is description of tutorial 4. Lorem ipsum dolor sit amet.',
+    //     doAnimateImage: true),
   ];
 
   @override
@@ -52,7 +52,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: backgroundColor,
         body: AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle(
               statusBarIconBrightness: Brightness.dark

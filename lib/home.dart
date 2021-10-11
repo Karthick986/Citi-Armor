@@ -97,7 +97,6 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
 
     return Scaffold(
-      backgroundColor: backgroundColor,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: PRIMARY_COLOR,

@@ -5,11 +5,12 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'app_constants.dart';
 
-class MyHttpOverrides extends HttpOverrides{
+class MyHttpOverrides extends HttpOverrides {
   @override
-  HttpClient createHttpClient(SecurityContext? context){
+  HttpClient createHttpClient(SecurityContext? context) {
     return super.createHttpClient(context)
-      ..badCertificateCallback = (X509Certificate cert, String host, int port)=> true;
+      ..badCertificateCallback = (X509Certificate cert, String host,
+          int port) => true;
   }
 }
 
@@ -24,6 +25,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(home: SplashScreenPage(),
+      title: "Citi Aromor",
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
           primaryColor: PRIMARY_COLOR,
@@ -93,7 +95,6 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: backgroundColor,
         body: Container(
           child: Column(
             children: [
@@ -111,8 +112,8 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
                             width: 150.0,
                             height: 150.0,
                             decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(100.0),
-                                ),
+                              borderRadius: BorderRadius.circular(100.0),
+                            ),
                             child: FlutterLogo(size: MediaQuery.of(context).size.width/2,),
                           ),
                           // Container(
