@@ -15,9 +15,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Citi Armor',
+      title: 'Citi Police',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primaryColor: PRIMARY_COLOR,
+        primaryColorDark: PRIMARY_COLOR,
+        fontFamily: 'ABeeZee'
       ),
       home: const SplashScreenPage(),
       debugShowCheckedModeBanner: false,

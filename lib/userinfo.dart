@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'package:citi_policemen/audio_record.dart';
+import 'package:citi_policemen/resolve_dialog.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'app_constants.dart';
 import 'dart:io' as IO;
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/services.dart';
 
 // ignore: must_be_immutable
 class UserInfo extends StatefulWidget {
@@ -35,126 +36,7 @@ class _UserInfoState extends State<UserInfo> {
 
   Future<void> _showResolve(context) async {
     return showDialog(context: context, builder: (BuildContext context) =>
-      AlertDialog(
-        title: Text("Resolve"),
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text("Reason:"),
-            Container(
-              margin: EdgeInsets.only(top: 8.0),
-              child: TextFormField(
-                maxLines: 3,
-                style: TextStyle(
-                    fontSize: 13.0),
-                onChanged: (value) {},
-                decoration: InputDecoration(
-                    hintText: "Type here",
-                    hintStyle: TextStyle(
-                        fontSize: 13.0),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(
-                            Radius.circular(4.0)))),
-              ),
-            ),
-            SizedBox(height: 16.0,),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Evidence:"),
-                ClipRRect(
-                  child: (_imageFile != null)
-                      ? Image.file(_imageFile!, width: 100, height: 100,)
-                      : ElevatedButton(
-                      style: ButtonStyle(
-                        backgroundColor:
-                        MaterialStateProperty.resolveWith<Color>(
-                              (Set<MaterialState> states) => Colors.white24,
-                        ),
-                        shape: MaterialStateProperty.all(
-                            RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24.0),
-                            )),
-                      ),
-                      onPressed: () {
-                        pickImage();
-                        setState(() {});
-                      },
-                      child: Text(
-                        'Click here to pick',
-                        style:
-                        TextStyle(fontSize: 13, color: textColor),
-                        textAlign: TextAlign.center,
-                      )),
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                  child: ElevatedButton(
-                      style: ButtonStyle(
-                        backgroundColor: MaterialStateProperty.resolveWith<Color>(
-                              (Set<MaterialState> states) => Colors.white,
-                        ),
-                        shape: MaterialStateProperty.all(
-                            RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.0),
-                            )
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 4.0),
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(
-                              color: Colors.black),
-                          textAlign: TextAlign.center,
-                        ),
-                      )
-                  )
-              ),
-              SizedBox(
-                width: 16,
-              ),
-              Expanded(
-                  child: ElevatedButton(
-                      style: ButtonStyle(
-                        backgroundColor: MaterialStateProperty.resolveWith<Color>(
-                              (Set<MaterialState> states) => PRIMARY_COLOR,
-                        ),
-                        shape: MaterialStateProperty.all(
-                            RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.0),
-                            )
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        Navigator.of(context).pop();
-                      },
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 4.0),
-                        child: Text(
-                          'Submit',
-                          style: TextStyle(
-                              color: Colors.white),
-                          textAlign: TextAlign.center,
-                        ),
-                      )
-                  )
-              ),
-            ],
-          ),
-        ],
-      )
+      const ResolveDialog()
     );
   }
 
@@ -178,11 +60,13 @@ class _UserInfoState extends State<UserInfo> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(margin: EdgeInsets.all(6.0), child:
+                  Container(margin: EdgeInsets.all(8.0), child:
                   Text("Time: ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0))),
-                  Container(margin: EdgeInsets.all(6.0), child:
+                  SizedBox(height: 16.0,),
+                  Container(margin: EdgeInsets.all(8.0), child:
                   Text("Name: ",  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0))),
-                  Container(margin: EdgeInsets.all(6.0), child:
+                  SizedBox(height: 16.0,),
+                  Container(margin: EdgeInsets.all(8.0), child:
                   Text("Mobile No: ",  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0)))
                 ]
             ),
@@ -190,30 +74,33 @@ class _UserInfoState extends State<UserInfo> {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircleAvatar(
-                child: FlutterLogo(size: 150,),
-              ),
+              Container(child: FlutterLogo(size: 96,), margin: EdgeInsets.all(8.0),),
               SizedBox(height: 16.0,),
-              ElevatedButton(
-                  style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.resolveWith<Color>(
-                          (Set<MaterialState> states) => PRIMARY_COLOR,
+              Container(
+                margin: EdgeInsets.all(4.0),
+                child: ElevatedButton(
+                    style: ButtonStyle(
+                      backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                            (Set<MaterialState> states) => PRIMARY_COLOR,
+                      ),
+                      shape: MaterialStateProperty.all(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.0),
+                          )
+                      ),
                     ),
-                    shape: MaterialStateProperty.all(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16.0),
-                        )
-                    ),
-                  ),
-                  onPressed: () {
-                    _showResolve(context);
-                  },
-                  child: Text(
-                    'Resolve',
-                    style: TextStyle(
-                        color: Colors.white),
-                    textAlign: TextAlign.center,
-                  )
+                    onPressed: () {
+                      // _showResolve(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (context) =>
+                          RecorderExample()));
+                    },
+                    child: Text(
+                      'Resolve',
+                      style: TextStyle(
+                          color: Colors.white),
+                      textAlign: TextAlign.center,
+                    )
+                ),
               )
             ],
           )

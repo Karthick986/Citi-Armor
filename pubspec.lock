@@ -64,11 +64,25 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.2.0"
+  file:
+    dependency: transitive
+    description:
+      name: file
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "5.2.1"
   flutter:
     dependency: "direct main"
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_audio_recorder:
+    dependency: "direct main"
+    description:
+      name: flutter_audio_recorder
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.5.5"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -198,6 +212,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.4.1"
+  intl:
+    dependency: transitive
+    description:
+      name: intl
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.17.0"
   js:
     dependency: transitive
     description:
@@ -268,6 +289,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.2.1"
+  path_provider:
+    dependency: "direct main"
+    description:
+      name: path_provider
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.6.1"
   pedantic:
     dependency: transitive
     description:
@@ -303,6 +331,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "7.3.0"
+  platform:
+    dependency: transitive
+    description:
+      name: platform
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "2.2.1"
   plugin_platform_interface:
     dependency: transitive
     description:
