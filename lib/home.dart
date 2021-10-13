@@ -4,8 +4,10 @@ import 'package:citi_policemen/signin.dart';
 import 'package:citi_policemen/userinfo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geolocator/geolocator.dart' as lac;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:location/location.dart';
 import 'app_constants.dart';
 import 'dart:ui' as ui;
 
@@ -18,9 +20,9 @@ class Home extends StatefulWidget {
 
 class AppConstant {
   static List<Map<String, dynamic>> list = [
-    {"title": "one", "id": "1", "lat": 23.7985053, "lon": 90.3842538},
-    {"title": "two", "id": "2", "lat": 23.802236, "lon": 90.3700},
-    {"title": "three", "id": "3", "lat": 23.8061939, "lon": 90.3771193},
+    {"title": "one", "id": "1", "lat": 21.122591, "lon": 79.1414301},
+    {"title": "two", "id": "2", "lat": 21.123533, "lon": 79.1444352},
+    {"title": "three", "id": "3", "lat": 21.12271, "lon": 79.149478},
   ];
 }
 
@@ -28,7 +30,6 @@ class _HomeState extends State<Home> {
   LatLng _initialcameraposition = LatLng(0, 0);
   late GoogleMapController _gcontroller;
   Completer<GoogleMapController> _controller = Completer();
-  Location _location = Location();
   // Set<Circle> circles = {};
 
   void showLogout(context) {
@@ -114,33 +115,39 @@ class _HomeState extends State<Home> {
 
   late Uint8List markerIcon;
 
-  // Future<Uint8List> getBytesFromAsset(String path, int width) async {
-  //   ByteData data = await rootBundle.load(path);
-  //   ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List(), targetWidth: width);
-  //   ui.FrameInfo fi = await codec.getNextFrame();
-  //   return (await fi.image.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
-  // }
-  //
-  // Future<Uint8List> getIcon() async {
-  //   markerIcon = await getBytesFromAsset('assets/images/signup.jpg', 100);
+  Future<Uint8List> getBytesFromAsset(String path, int width) async {
+    ByteData data = await rootBundle.load(path);
+    ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List(), targetWidth: width);
+    ui.FrameInfo fi = await codec.getNextFrame();
+    return (await fi.image.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
+  }
+
+  Future<Uint8List> getIcon() async {
+    markerIcon = await getBytesFromAsset('assets/images/mark_red.png', 100);
+    return markerIcon;
+  }
+
+  // Future<Uint8List> changeIcon(index) async {
+  //   index = await getBytesFromAsset('assets/images/mark_green.png', 100);
+  //   setState(() {});
   //   return markerIcon;
   // }
 
   Iterable markers = [];
 
   Future setMarkers(Iterable _markers) async {
-    // await getIcon();
+    await getIcon();
     _markers = Iterable.generate(
         AppConstant.list.length, (index) {
       return Marker(
-        // icon: BitmapDescriptor.fromBytes(markerIcon),
+        icon: BitmapDescriptor.fromBytes(markerIcon),
         markerId: MarkerId(AppConstant.list[index]['id']),
         position: LatLng(
           AppConstant.list[index]['lat'],
           AppConstant.list[index]['lon'],
         ),
         onTap: () {
-          print(_markers.elementAt(index));
+          // print(_markers.elementAt(index));
           _showUserInfo(AppConstant.list[index]['id'],
               AppConstant.list[index]['lat'].toString(), AppConstant.list[index]['lon'].toString());
         },
@@ -151,20 +158,34 @@ class _HomeState extends State<Home> {
     });
   }
 
-      // Iterable _markers = Iterable.generate(1, (index) {
-      //   LatLng latLngMarker = LatLng(l.latitude!, l.longitude!);
-      //
-      //   return Marker(markerId: MarkerId("marker$index"),position: latLngMarker);
-      // });
-      //
-      // setState(() {
-      //   markers = _markers;
-      // });
-    // }
+  // Future<Position> getLocation() async {
+  //   var currentLocation;
+  //   try {
+  //     currentLocation = await Geolocator.getCurrentPosition(
+  //         desiredAccuracy: lac.LocationAccuracy.best);
+  //   } catch (e) {
+  //     currentLocation = null;
+  //   }
+  //   return currentLocation;
+  // }
+  //
+  // Future showLatlong() async {
+  //   Position position = await getLocation();
+  //   print(position.latitude.toString()+" "+position.longitude.toString());
+  //   await GetAddressFromLatLong(position);
+  // }
+  //
+  // Future<void> GetAddressFromLatLong(Position position)async {
+  //   List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+  //   print(placemarks);
+  //   Placemark place = placemarks[0];
+  //   print(place.street);
+  // }
 
   @override
   void initState() {
     // _onMapCreated();
+    // showLatlong();
     setMarkers(markers);
     super.initState();
   }
@@ -193,8 +214,8 @@ class _HomeState extends State<Home> {
             height: MediaQuery.of(context).size.height,
             width: MediaQuery.of(context).size.width,
             child: GoogleMap(
-              initialCameraPosition: CameraPosition(target: LatLng(23.7985053,
-                  90.3842538), zoom: 13),
+              initialCameraPosition: CameraPosition(target: LatLng(21.1225911, 79.1414301),
+                  zoom: 16),
               // initialCameraPosition:
               // CameraPosition(target: _initialcameraposition),
               mapType: MapType.normal,
@@ -206,12 +227,10 @@ class _HomeState extends State<Home> {
               zoomControlsEnabled: true,
               compassEnabled: true,
               indoorViewEnabled: true,
-              mapToolbarEnabled: false,
               zoomGesturesEnabled: true,
               markers: Set.from(
                 markers,
               ),
-              circles: circles,
             ),
           ),
         ],
