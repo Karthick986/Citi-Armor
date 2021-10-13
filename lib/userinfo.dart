@@ -35,9 +35,13 @@ class _UserInfoState extends State<UserInfo> {
   }
 
   Future<void> _showResolve(context) async {
-    return showDialog(context: context, builder: (BuildContext context) =>
-      const ResolveDialog()
-    );
+    return showDialog(barrierDismissible: false, context: context, builder: (_) {
+      return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          title: Text("Resolve"), content: ResolveDialog());
+    });
   }
 
   @override
@@ -90,9 +94,9 @@ class _UserInfoState extends State<UserInfo> {
                       ),
                     ),
                     onPressed: () {
-                      // _showResolve(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (context) =>
-                          RecorderExample()));
+                      _showResolve(context);
+                      // Navigator.push(context, MaterialPageRoute(builder: (context) =>
+                      //     ResolveDialog()));
                     },
                     child: Text(
                       'Resolve',
