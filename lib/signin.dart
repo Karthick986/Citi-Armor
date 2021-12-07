@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:citi_policemen/get_latlong.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
@@ -184,8 +185,7 @@ class _SigninPageState extends State<SigninPage> {
                               sentOtp = true;
                             });
                             Navigator.of(context).pop();
-                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) =>
-                            const Home()));
+                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => GooglePolylines()));
                           },
                           child: const Padding(
                             padding: EdgeInsets.symmetric(vertical: 4.0),

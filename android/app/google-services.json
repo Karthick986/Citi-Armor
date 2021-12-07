@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "23071358101",
+    "project_id": "citi-police",
+    "storage_bucket": "citi-police.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:23071358101:android:fffebd3974db8da7472f9c",
+        "android_client_info": {
+          "package_name": "com.flutter.citi_police"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "23071358101-9djta4efedbr00bra656i4r512f5ae7k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3-A_Fx8xCLqO85WIuvjLQozQEN2DF7t0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "23071358101-9djta4efedbr00bra656i4r512f5ae7k.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:23071358101:android:4d3e7a4b3423b7bf472f9c",
+        "android_client_info": {
+          "package_name": "com.flutter.citi_policemen"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "23071358101-9djta4efedbr00bra656i4r512f5ae7k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3-A_Fx8xCLqO85WIuvjLQozQEN2DF7t0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "23071358101-9djta4efedbr00bra656i4r512f5ae7k.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
