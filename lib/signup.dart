@@ -394,7 +394,7 @@ class _SignupPageState extends State<SignupPage> {
                     alignment: Alignment.center,
                     height: 100.0,
                     margin: const EdgeInsets.only(
-                        left: 30.0, right: 30.0, top: 20.0, bottom: 20.0),
+                        left: 15.0, right: 15.0, top: 20.0, bottom: 20.0),
                     child: ClipRRect(
                       child: (_imageFile != null)
                           ? Image.file(_imageFile!)

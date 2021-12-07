@@ -1,7 +1,11 @@
 import 'package:citi_police/app_constants.dart';
 import 'package:citi_police/signin.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-// import 'package:location/location.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:location/location.dart';
 
 class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
@@ -12,6 +16,55 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   bool isPressed = false;
+  String lat="0", long="";
+
+  Location location = Location();
+
+  Future getLatLng() async {
+    _locationData = await location.getLocation();
+    setState(() {
+      lat = _locationData.latitude.toString();
+      long = _locationData.longitude.toString();
+    });
+    Fluttertoast.showToast(msg: "Current Location found!");
+    await FirebaseFirestore.instance
+        .collection("Users").doc("uid")
+        .set({'lat': lat, 'long': long});
+    Navigator.pop(context);
+  }
+
+  late bool _serviceEnabled;
+  late PermissionStatus _permissionGranted;
+  late LocationData _locationData;
+
+  Future checkPermission() async {
+    _permissionGranted = await location.hasPermission();
+    if (_permissionGranted == PermissionStatus.denied) {
+      _permissionGranted = await location.requestPermission();
+      if (_permissionGranted != PermissionStatus.granted) {
+        return;
+      }
+    }
+
+    _serviceEnabled = await location.serviceEnabled();
+    if (!_serviceEnabled) {
+      _serviceEnabled = await location.requestService();
+      if (!_serviceEnabled) {
+        return;
+      }
+    }
+  }
+
+  Future _progressDialog(BuildContext context) {
+    return showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (BuildContext context) {
+          return Center(
+              child: CircularProgressIndicator(),
+            );
+        });
+  }
 
   void showLogout(context) {
     // set up the buttons
@@ -56,41 +109,11 @@ class _HomeState extends State<Home> {
     );
   }
 
-  // bool _serviceEnabled;
-  // PermissionStatus _permissionGranted;
-  // LocationData _userLocation;
-  //
-  // Future<void> _getUserLocation() async {
-  //   Location location = new Location();
-  //
-  //   // Check if location service is enable
-  //   _serviceEnabled = await location.serviceEnabled();
-  //   if (!_serviceEnabled) {
-  //     _serviceEnabled = await location.requestService();
-  //     if (!_serviceEnabled) {
-  //       return;
-  //     }
-  //   }
-  //
-  //   // Check if permission is granted
-  //   _permissionGranted = await location.hasPermission();
-  //   if (_permissionGranted == PermissionStatus.denied) {
-  //     _permissionGranted = await location.requestPermission();
-  //     if (_permissionGranted != PermissionStatus.granted) {
-  //       return;
-  //     }
-  //   }
-  //
-  //   final _locationData = await location.getLocation();
-  //   setState(() {
-  //     _userLocation = _locationData;
-  //   });
-  // }
-
   @override
   void initState() {
-    // _getCurrentLocation();
     super.initState();
+    checkPermission();
+    Firebase.initializeApp();
   }
 
   @override
@@ -102,9 +125,12 @@ class _HomeState extends State<Home> {
         backgroundColor: PRIMARY_COLOR,
         title: Text("Citi Armor"),
         actions: [
-          TextButton(onPressed: () {
-            showLogout(context);
-          }, child: Text("Logout", style: TextStyle(color: Colors.white),))
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: TextButton(onPressed: () {
+              showLogout(context);
+            }, child: Text("Logout", style: TextStyle(color: Colors.white),)),
+          )
         ],
       ),
         body: Center(
@@ -160,9 +186,8 @@ class _HomeState extends State<Home> {
                 ),
                 child: Text("ON", style: TextStyle(fontSize: MediaQuery.of(context).size.width/8),),
                 onPressed: () {
-                  setState(() {
-                    isPressed = true;
-                  });
+                  _progressDialog(context);
+                  getLatLng();
                 },
               )),
     ));
