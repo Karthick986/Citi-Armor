@@ -254,6 +254,9 @@ class _SignupPageState extends State<SignupPage> {
               ),
               onPressed: () {
                 if(otpVisibility){
+                  setState(() {
+                    isLoading=true;
+                  });
                   verifyOTP();
                 }
                 else {
@@ -302,7 +305,6 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   void verifyOTP() async {
-
     PhoneAuthCredential credential = PhoneAuthProvider.credential(verificationId: verificationID, smsCode: otpController.text);
 
     await auth.signInWithCredential(credential).then((value) async {
@@ -313,7 +315,11 @@ class _SignupPageState extends State<SignupPage> {
       );
       await FirebaseFirestore.instance
           .collection("Users").doc(auth.currentUser!.uid)
-          .set({'name': nameController.text, 'mobile': phoneController.text, "lat": "0", "long": "0"});
+          .set({'name': nameController.text, 'mobile': phoneController.text, "lat": "0", "long": "0", "uid": auth.currentUser!.uid.toString()});
+      setState(() {
+        isLoading=false;
+      });
+
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) =>
       const Home()));
     });
