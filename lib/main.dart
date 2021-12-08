@@ -1,11 +1,14 @@
 import 'dart:io';
 import 'package:citi_police/onboarding.dart';
+import 'package:citi_police/signin.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'app_constants.dart';
+import 'home.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -21,7 +24,16 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  runApp(MyApp());
+  Widget navigateFirst;
+  User? firebaseUser = FirebaseAuth.instance.currentUser;
+
+  if (firebaseUser != null) {
+    navigateFirst = HomePage();
+  }
+  else {
+    navigateFirst = MyApp();
+  }
+  runApp(navigateFirst);
 }
 
 class MyApp extends StatelessWidget {

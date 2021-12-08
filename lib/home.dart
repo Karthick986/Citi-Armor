@@ -8,6 +8,22 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:location/location.dart';
 
+class HomePage extends StatelessWidget {
+  const HomePage({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(home: Home(),
+      title: "Citi Armor",
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+          primaryColor: PRIMARY_COLOR,
+          primaryColorDark: PRIMARY_COLOR,
+          fontFamily: 'ABeeZee'
+      ),);
+  }
+}
+
 class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
 
@@ -16,8 +32,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  bool isPressed = false;
-  String lat="0", long="0";
+  String lat="", long="";
 
   Location location = Location();
 
@@ -27,11 +42,16 @@ class _HomeState extends State<Home> {
       lat = _locationData.latitude.toString();
       long = _locationData.longitude.toString();
     });
-    Fluttertoast.showToast(msg: "Current Location found!");
-    await FirebaseFirestore.instance
-        .collection("Users").doc()
-        .set({'lat': lat, 'long': long});
-    Navigator.pop(context);
+    if (lat.isNotEmpty && long.isNotEmpty) {
+      Fluttertoast.showToast(msg: "Current Location found!");
+      await FirebaseFirestore.instance
+          .collection("Users").doc(FirebaseAuth.instance.currentUser!.uid)
+          .update({'lat': lat, 'long': long});
+
+    } else {
+      Fluttertoast.showToast(msg: "Location not found!");
+    }
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Home()));
   }
 
   late bool _serviceEnabled;
@@ -56,6 +76,16 @@ class _HomeState extends State<Home> {
     }
   }
 
+  Future getData() async {
+    var document = FirebaseFirestore.instance.collection("Users").doc(FirebaseAuth.instance.currentUser!.uid);
+    document.get().then((value) {
+      setState(() {
+        lat = value["lat"];
+        long = value["long"];
+      });
+    });
+  }
+
   Future _progressDialog(BuildContext context) {
     return showDialog(
         context: context,
@@ -76,6 +106,7 @@ class _HomeState extends State<Home> {
         child: Text('No', style: TextStyle(color: PRIMARY_COLOR)));
     Widget continueButton = TextButton(
         onPressed: () {
+          FirebaseAuth.instance.signOut();
           Navigator.of(context).pop();
           Navigator.pushReplacement(
               context,
@@ -115,6 +146,7 @@ class _HomeState extends State<Home> {
     super.initState();
     checkPermission();
     Firebase.initializeApp();
+    getData();
   }
 
   @override
@@ -134,8 +166,8 @@ class _HomeState extends State<Home> {
           )
         ],
       ),
-        body: Center(
-      child: (isPressed)
+        body: lat.isEmpty || long.isEmpty ? Center(
+      child: CircularProgressIndicator(color: PRIMARY_COLOR,),) : (lat!="0"&&long!="0")
           ? Column(
               children: [
                 Expanded(
@@ -151,7 +183,12 @@ class _HomeState extends State<Home> {
                                     MediaQuery.of(context).size.width / 2))),
                           ),
                           child: Text("OFF", style: TextStyle(fontSize: MediaQuery.of(context).size.width/8),),
-                          onPressed: () {},
+                          onPressed: () async {
+                            await FirebaseFirestore.instance
+                                .collection("Users").doc(FirebaseAuth.instance.currentUser!.uid)
+                                .update({'lat': "0", 'long': "0"});
+                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Home()));
+                          },
                         )),
                   ),
                 ),
@@ -167,30 +204,33 @@ class _HomeState extends State<Home> {
                               borderRadius:
                                   BorderRadius.all(Radius.circular(16.0))),
                         ),
-                        onPressed: () {
-                          setState(() {
-                            isPressed = false;
-                          });
+                        onPressed: () async {
+                          await FirebaseFirestore.instance
+                              .collection("Users").doc(FirebaseAuth.instance.currentUser!.uid)
+                              .update({'lat': "0", 'long': "0"});
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Home()));
                         },
                       ),
                     ))
               ],
             )
-          : ConstrainedBox(
-              constraints: BoxConstraints.tightFor(width: MediaQuery.of(context).size.width/2, height: MediaQuery.of(context).size.width/2),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  primary: PRIMARY_COLOR,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(
-                          MediaQuery.of(context).size.width / 2))),
-                ),
-                child: Text("ON", style: TextStyle(fontSize: MediaQuery.of(context).size.width/8),),
-                onPressed: () {
-                  _progressDialog(context);
-                  getLatLng();
-                },
-              )),
-    ));
+          : Center(
+            child: ConstrainedBox(
+                constraints: BoxConstraints.tightFor(width: MediaQuery.of(context).size.width/1.5, height: MediaQuery.of(context).size.width/1.5),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    primary: PRIMARY_COLOR,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(
+                            MediaQuery.of(context).size.width / 2))),
+                  ),
+                  child: Text("ON", style: TextStyle(fontSize: MediaQuery.of(context).size.width/8),),
+                  onPressed: () {
+                    _progressDialog(context);
+                    getLatLng();
+                  },
+                )),
+          ),
+    );
   }
 }
