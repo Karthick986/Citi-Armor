@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'dart:io' as IO;
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
@@ -27,15 +29,59 @@ class _SignupPageState extends State<SignupPage> {
   bool sentOtp = false;
 
   final formKey = GlobalKey<FormState>();
-  TextEditingController textEditingController = TextEditingController();
   StreamController<ErrorAnimationType>? errorController;
   bool hasError = false;
   String currentText = "";
 
   IO.File? _imageFile;
   late String byteImage;
-  bool isLoading = false;
+  bool isLoading = false, verifyLoading=false;
   final picker = ImagePicker();
+
+  String verificationId="";
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  TextEditingController otpController = TextEditingController();
+
+  void verifyOTP() async {
+
+    PhoneAuthCredential credential = PhoneAuthProvider.credential(verificationId: verificationId, smsCode: otpController.text);
+
+    await _auth.signInWithCredential(credential).then((value){
+      Fluttertoast.showToast(
+          msg: "You are logged in successfully",
+          toastLength: Toast.LENGTH_SHORT,
+          fontSize: 16.0
+      );
+      Navigator.of(context).pop();
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) =>
+      const Home()));
+    });
+  }
+
+  void loginWithPhone() async {
+    _auth.verifyPhoneNumber(
+      phoneNumber: _etPhone.text,
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        await _auth.signInWithCredential(credential).then((value){
+          print("You are logged in successfully");
+        });
+      },
+      verificationFailed: (FirebaseAuthException e) {
+        print(e.message);
+      },
+      codeSent: (String verificationId, int? resendToken) {
+        setState(() {
+          isLoading=false;
+          this.verificationId = verificationId;
+          showOTPDialog(context);
+        });
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {
+
+      },
+    );
+  }
 
   Future pickImage(int i) async {
     switch (i) {
@@ -149,15 +195,14 @@ class _SignupPageState extends State<SignupPage> {
               Form(
                 key: formKey,
                 child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 8.0, horizontal: 50),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                     child: PinCodeTextField(
                       appContext: context,
                       pastedTextStyle: TextStyle(
                           // color: Colors.green.shade600,
                           // fontWeight: FontWeight.bold,
                           ),
-                      length: 4,
+                      length: 6,
                       // obscureText: true,
                       // obscuringCharacter: '*',
                       // obscuringWidget: FlutterLogo(
@@ -245,7 +290,7 @@ class _SignupPageState extends State<SignupPage> {
                   width: 16,
                 ),
                 Expanded(
-                    child: ElevatedButton(
+                    child: verifyLoading ? Center(child: CircularProgressIndicator(color: PRIMARY_COLOR,),) : ElevatedButton(
                         style: ButtonStyle(
                           backgroundColor:
                               MaterialStateProperty.resolveWith<Color>(
@@ -257,14 +302,7 @@ class _SignupPageState extends State<SignupPage> {
                           )),
                         ),
                         onPressed: () {
-                          setState(() {
-                            sentOtp = true;
-                          });
-                          Navigator.of(context).pop();
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const Home()));
+                          verifyOTP();
                         },
                         child: const Padding(
                           padding: EdgeInsets.symmetric(vertical: 4.0),
@@ -296,6 +334,7 @@ class _SignupPageState extends State<SignupPage> {
   @override
   void initState() {
     super.initState();
+    _etPhone.text = "+91";
   }
 
   @override
@@ -336,7 +375,7 @@ class _SignupPageState extends State<SignupPage> {
               height: 40,
             ),
             const Text(
-              'Sign Up',
+              'Sign In',
             ),
             const SizedBox(
               height: 10,
@@ -359,7 +398,7 @@ class _SignupPageState extends State<SignupPage> {
               ),
             ),
             const SizedBox(
-              height: 20.0,
+              height: 16.0,
             ),
             TextFormField(
               keyboardType: TextInputType.phone,
@@ -447,27 +486,25 @@ class _SignupPageState extends State<SignupPage> {
             const SizedBox(
               height: 24,
             ),
-            TextButton(
+            isLoading ? Center(child: CircularProgressIndicator(color: PRIMARY_COLOR,),) : TextButton(
                 style: ButtonStyle(
                   backgroundColor: MaterialStateProperty.resolveWith<Color>(
                     (Set<MaterialState> states) => PRIMARY_COLOR,
                   ),
-                  overlayColor: MaterialStateProperty.all(Colors.transparent),
                   shape: MaterialStateProperty.all(RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(4.0),
                   )),
                 ),
                 onPressed: () {
-                  //Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => HomePage()), (Route<dynamic> route) => false);
-                  // if(!widget.fromList){
-                  //   Navigator.pop(context);
-                  // }
-                  showOTPDialog(context);
+                  setState(() {
+                    isLoading=true;
+                  });
+                  loginWithPhone();
                 },
                 child: const Padding(
                   padding: EdgeInsets.symmetric(vertical: 5.0),
                   child: Text(
-                    'Register',
+                    'Sign In',
                     style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -478,26 +515,26 @@ class _SignupPageState extends State<SignupPage> {
             const SizedBox(
               height: 16,
             ),
-            Center(
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.pushReplacement(context,
-                      MaterialPageRoute(builder: (context) => SigninPage()));
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Already Registered! Login Here ',
-                    ),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 15.0,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            // Center(
+            //   child: GestureDetector(
+            //     onTap: () {
+            //       Navigator.pushReplacement(context,
+            //           MaterialPageRoute(builder: (context) => SigninPage()));
+            //     },
+            //     child: Row(
+            //       mainAxisAlignment: MainAxisAlignment.center,
+            //       children: [
+            //         Text(
+            //           'Already Registered! Login Here ',
+            //         ),
+            //         Icon(
+            //           Icons.arrow_forward_ios_rounded,
+            //           size: 15.0,
+            //         ),
+            //       ],
+            //     ),
+            //   ),
+            // ),
           ],
         ),
       ),

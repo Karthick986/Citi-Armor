@@ -1,8 +1,9 @@
 import 'dart:async';
-
 import 'package:citi_police/signup.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'app_constants.dart';
 import 'home.dart';
@@ -20,12 +21,64 @@ class _SigninPageState extends State<SigninPage> {
   IconData _iconVisible = Icons.visibility_off;
 
   bool sentOtp=false;
+  bool isLoading = false;
+
+  String verificationId="";
 
   final formKey = GlobalKey<FormState>();
-  TextEditingController textEditingController = TextEditingController();
   StreamController<ErrorAnimationType>? errorController;
   bool hasError = false;
   String currentText = "";
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  TextEditingController otpController = TextEditingController();
+
+  void verifyOTP() async {
+
+    PhoneAuthCredential credential = PhoneAuthProvider.credential(verificationId: verificationId, smsCode: otpController.text);
+
+    await _auth.signInWithCredential(credential).then((value){
+      print("You are logged in successfully");
+      Fluttertoast.showToast(
+          msg: "You are logged in successfully",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0
+      );
+      Navigator.of(context).pop();
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) =>
+      const Home()));
+    });
+  }
+
+  void loginWithPhone() async {
+    _auth.verifyPhoneNumber(
+      phoneNumber: _etPhone.text,
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        setState(() {
+          otpController.text = credential.smsCode!;
+        });
+        await _auth.signInWithCredential(credential).then((value){
+          print("You are logged in successfully");
+        });
+      },
+      verificationFailed: (FirebaseAuthException e) {
+        print(e.message);
+      },
+      codeSent: (String verificationId, int? resendToken) {
+        // otpVisibility = true;
+        this.verificationId = verificationId;
+        showOTPDialog(context);
+        setState(() {});
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {
+
+      },
+    );
+  }
 
   Future<void> showOTPDialog(context) {
     return showDialog(
@@ -75,7 +128,7 @@ class _SigninPageState extends State<SigninPage> {
                             // color: Colors.green.shade600,
                             // fontWeight: FontWeight.bold,
                           ),
-                          length: 4,
+                          length: 6,
                           // obscureText: true,
                           // obscuringCharacter: '*',
                           // obscuringWidget: FlutterLogo(
@@ -100,6 +153,7 @@ class _SigninPageState extends State<SigninPage> {
                               selectedFillColor: Colors.white
                           ),
                           cursorColor: PRIMARY_COLOR,
+                          controller: otpController,
                           animationDuration: Duration(milliseconds: 300),
                           enableActiveFill: true,
                           // errorAnimationController: errorController,
@@ -179,12 +233,7 @@ class _SigninPageState extends State<SigninPage> {
                           ),
                         ),
                         onPressed: () {
-                          setState(() {
-                            sentOtp = true;
-                          });
-                          Navigator.of(context).pop();
-                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) =>
-                          const Home()));
+                          verifyOTP();
                         },
                         child: const Padding(
                           padding: EdgeInsets.symmetric(vertical: 4.0),
@@ -289,7 +338,8 @@ class _SigninPageState extends State<SigninPage> {
                     ),
                   ),
                   onPressed: () {
-                    showOTPDialog(context);
+                    loginWithPhone();
+                    // phoneSignIn(phoneNumber: _etPhone.text);
                     // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Home()));
                   },
                   child: const Padding(

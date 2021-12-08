@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:citi_police/onboarding.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
@@ -120,14 +121,14 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
                             ),
                             child: FlutterLogo(size: MediaQuery.of(context).size.width/2,),
                           ),
-                          // Container(
-                          //   child: Text(
-                          //     'Design with love in India',
-                          //     style: TextStyle(
-                          //         color: Colors.white, fontSize: 15.0, fontFamily: 'Bariol-Bold'),
-                          //   ),
-                          //   margin: EdgeInsets.only(top: 10.0),
-                          // )
+                          Container(
+                            child: Text(
+                              'Citi-Armor',
+                              style: TextStyle(
+                                  color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.bold),
+                            ),
+                            margin: EdgeInsets.only(top: 10.0),
+                          )
                         ],
                       )),
                 ),

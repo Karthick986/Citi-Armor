@@ -1,5 +1,6 @@
 import 'package:citi_police/app_constants.dart';
 import 'package:citi_police/signin.dart';
+import 'package:citi_police/signup.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -16,7 +17,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   bool isPressed = false;
-  String lat="0", long="";
+  String lat="0", long="0";
 
   Location location = Location();
 
@@ -28,7 +29,7 @@ class _HomeState extends State<Home> {
     });
     Fluttertoast.showToast(msg: "Current Location found!");
     await FirebaseFirestore.instance
-        .collection("Users").doc("uid")
+        .collection("Users").doc()
         .set({'lat': lat, 'long': long});
     Navigator.pop(context);
   }
@@ -79,7 +80,7 @@ class _HomeState extends State<Home> {
           Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                  builder: (context) => SigninPage()));
+                  builder: (context) => SignupPage()));
         },
         child: Text('Yes', style: TextStyle(color: PRIMARY_COLOR)));
 
