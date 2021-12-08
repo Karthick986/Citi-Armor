@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:citi_policemen/signin.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'app_constants.dart';
+import 'home.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -20,7 +23,17 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  runApp(const MyApp());
+  Widget navigateFirst;
+  User? firebaseUser = FirebaseAuth.instance.currentUser;
+
+  if (firebaseUser != null) {
+    navigateFirst = HomePage();
+  }
+  else {
+    navigateFirst = MyApp();
+  }
+
+  runApp(navigateFirst);
 }
 
 class MyApp extends StatelessWidget {
@@ -36,7 +49,7 @@ class MyApp extends StatelessWidget {
         primaryColorDark: PRIMARY_COLOR,
         fontFamily: 'ABeeZee'
       ),
-      home: const SplashScreenPage(),
+      home: SplashScreenPage(),
       debugShowCheckedModeBanner: false,
     );
   }
@@ -123,14 +136,14 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
                             ),
                             child: FlutterLogo(size: MediaQuery.of(context).size.width/2,),
                           ),
-                          // Container(
-                          //   child: Text(
-                          //     'Design with love in India',
-                          //     style: TextStyle(
-                          //         color: Colors.white, fontSize: 15.0, fontFamily: 'Bariol-Bold'),
-                          //   ),
-                          //   margin: EdgeInsets.only(top: 10.0),
-                          // )
+                          Container(
+                            child: Text(
+                              'Citi-Poilce',
+                              style: TextStyle(
+                                  color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.bold),
+                            ),
+                            margin: EdgeInsets.only(top: 10.0),
+                          )
                         ],
                       )),
                 ),

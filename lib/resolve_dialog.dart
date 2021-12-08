@@ -1,3 +1,6 @@
+import 'package:citi_policemen/home.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:io' as IO;
 import 'package:image_picker/image_picker.dart';
@@ -10,7 +13,9 @@ import 'package:record_mp3/record_mp3.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class ResolveDialog extends StatefulWidget {
-  const ResolveDialog({Key? key}) : super(key: key);
+  String userId;
+
+  ResolveDialog({Key? key, required this.userId}) : super(key: key);
 
   @override
   _ResolveDialogState createState() => _ResolveDialogState();
@@ -299,9 +304,13 @@ class _ResolveDialogState extends State<ResolveDialog> {
                               )
                           ),
                         ),
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          Navigator.of(context).pop();
+                        onPressed: () async {
+                          await FirebaseFirestore.instance
+                              .collection("Users").doc(widget.userId)
+                              .update({'lat': "0", 'long': "0"}).then((value) {
+                                Navigator.pop(context);
+                                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Home()));
+                          });
                         },
                         child: const Padding(
                           padding: EdgeInsets.symmetric(vertical: 4.0),

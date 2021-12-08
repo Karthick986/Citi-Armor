@@ -1,7 +1,10 @@
 import 'dart:async';
-import 'package:citi_policemen/get_latlong.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'app_constants.dart';
 import 'home.dart';
@@ -14,11 +17,16 @@ class SigninPage extends StatefulWidget {
 }
 
 class _SigninPageState extends State<SigninPage> {
-  final TextEditingController _etPhone = TextEditingController();
+  TextEditingController phoneController = TextEditingController(text: "+91");
   bool _obscureText = true;
   IconData _iconVisible = Icons.visibility_off;
 
-  bool sentOtp=false;
+  TextEditingController otpController = TextEditingController();
+
+  FirebaseAuth auth = FirebaseAuth.instance;
+
+  bool otpVisibility = false, isLoading = false;
+  String verificationID = "";
 
   final formKey = GlobalKey<FormState>();
   TextEditingController textEditingController = TextEditingController();
@@ -26,206 +34,247 @@ class _SigninPageState extends State<SigninPage> {
   bool hasError = false;
   String currentText = "";
 
-  Future<void> showOTPDialog(context) {
-    return showDialog(
-      barrierDismissible: false,
-      context: context,
-      builder: (BuildContext context) {
-        return Padding(
-          padding: EdgeInsets.only(left: 24.0, right: 24.0),
-          child: AlertDialog(
-            contentPadding: EdgeInsets.zero,
-            insetPadding: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            title: Text(
-              'Verify OTP',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, color: PRIMARY_COLOR, fontWeight: FontWeight.bold),
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            margin: EdgeInsets.only(top: 8.0),
-                            padding: EdgeInsets.all(4.0),
-                            width: MediaQuery.of(context).size.width,
-                            child: Text('OTP Code has been sent to your mobile number',
-                              style: TextStyle(fontSize: 13, color: Colors.white,), textAlign: TextAlign.center,),
-                            color: PRIMARY_COLOR,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 8.0,),
-                    Container(child: Text('Enter OTP here...',
-                        style: TextStyle(color: PRIMARY_COLOR))
-                    ),
-                    Form(
-                      key: formKey,
-                      child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 8.0, horizontal: 50),
-                          child: PinCodeTextField(
-                            appContext: context,
-                            pastedTextStyle: TextStyle(
-                              // color: Colors.green.shade600,
-                              // fontWeight: FontWeight.bold,
-                            ),
-                            length: 4,
-                            // obscureText: true,
-                            // obscuringCharacter: '*',
-                            // obscuringWidget: FlutterLogo(
-                            //   size: 24,
-                            // ),
-                            blinkWhenObscuring: true,
-                            animationType: AnimationType.fade,
-                            // validator: (v) {
-                            //   if (v!.length < 4) {
-                            //     return "Invalid OTP Code";
-                            //   } else {
-                            //     return null;
-                            //   }
-                            // },
-                            pinTheme: PinTheme(
-                                shape: PinCodeFieldShape.box,
-                                borderRadius: BorderRadius.circular(5),
-                                fieldHeight: 50,
-                                fieldWidth: 40,
-                                activeFillColor: Colors.white,
-                                inactiveFillColor: Colors.white,
-                                selectedFillColor: Colors.white
-                            ),
-                            cursorColor: PRIMARY_COLOR,
-                            animationDuration: Duration(milliseconds: 300),
-                            enableActiveFill: true,
-                            // errorAnimationController: errorController,
-                            // controller: textEditingController,
-                            keyboardType: TextInputType.number,
-                            boxShadows: [
-                              BoxShadow(
-                                offset: Offset(0, 1),
-                                color: Colors.black12,
-                                blurRadius: 10,
-                              )
-                            ],
-                            onCompleted: (v) {
-                              print("Completed");
-                            },
-                            // onTap: () {
-                            //   print("Pressed");
-                            // },
-                            onChanged: (value) {
-                              print(value);
-                              setState(() {
-                                currentText = value;
-                              });
-                            },
-                            beforeTextPaste: (text) {
-                              print("Allowing to paste $text");
-                              //if you return true then it will show the paste confirmation dialog. Otherwise if false, then nothing will happen.
-                              //but you can show anything you want here, like your pop up saying wrong paste format or etc
-                              return true;
-                            },
-                          )),
-                    ),
-                  ]),
-            ),
-            actions: [
-              Row(
-                children: [
-                  Expanded(
-                      child: ElevatedButton(
-                          style: ButtonStyle(
-                            backgroundColor: MaterialStateProperty.resolveWith<Color>(
-                                  (Set<MaterialState> states) => Colors.white,
-                            ),
-                            shape: MaterialStateProperty.all(
-                                RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4.0),
-                                )
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 4.0),
-                            child: Text(
-                              'Cancel',
-                              style: TextStyle(
-                                  color: Colors.black),
-                              textAlign: TextAlign.center,
-                            ),
-                          )
-                      )
-                  ),
-                  SizedBox(
-                    width: 16,
-                  ),
-                  Expanded(
-                      child: ElevatedButton(
-                          style: ButtonStyle(
-                            backgroundColor: MaterialStateProperty.resolveWith<Color>(
-                                  (Set<MaterialState> states) => PRIMARY_COLOR,
-                            ),
-                            shape: MaterialStateProperty.all(
-                                RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4.0),
-                                )
-                            ),
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              sentOtp = true;
-                            });
-                            Navigator.of(context).pop();
-                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => GooglePolylines()));
-                          },
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 4.0),
-                            child: Text(
-                              'Submit',
-                              style: TextStyle(
-                                  color: Colors.white),
-                              textAlign: TextAlign.center,
-                            ),
-                          )
-                      )
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
+  // Future<void> showOTPDialog(context) {
+  //   return showDialog(
+  //     barrierDismissible: false,
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return Padding(
+  //         padding: EdgeInsets.only(left: 24.0, right: 24.0),
+  //         child: AlertDialog(
+  //           contentPadding: EdgeInsets.zero,
+  //           insetPadding: EdgeInsets.zero,
+  //           shape: RoundedRectangleBorder(
+  //             borderRadius: BorderRadius.circular(8),
+  //           ),
+  //           title: Text(
+  //             'Verify OTP',
+  //             textAlign: TextAlign.center,
+  //             style: TextStyle(fontSize: 18, color: PRIMARY_COLOR, fontWeight: FontWeight.bold),
+  //           ),
+  //           content: SingleChildScrollView(
+  //             child: Column(
+  //                 mainAxisSize: MainAxisSize.min,
+  //                 children: [
+  //                   Row(
+  //                     children: [
+  //                       Expanded(
+  //                         child: Container(
+  //                           margin: EdgeInsets.only(top: 8.0),
+  //                           padding: EdgeInsets.all(4.0),
+  //                           width: MediaQuery.of(context).size.width,
+  //                           child: Text('OTP Code has been sent to your mobile number',
+  //                             style: TextStyle(fontSize: 13, color: Colors.white,), textAlign: TextAlign.center,),
+  //                           color: PRIMARY_COLOR,
+  //                         ),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                   SizedBox(height: 8.0,),
+  //                   Container(child: Text('Enter OTP here...',
+  //                       style: TextStyle(color: PRIMARY_COLOR))
+  //                   ),
+  //                   Form(
+  //                     key: formKey,
+  //                     child: Padding(
+  //                         padding: const EdgeInsets.symmetric(
+  //                             vertical: 8.0, horizontal: 50),
+  //                         child: PinCodeTextField(
+  //                           appContext: context,
+  //                           pastedTextStyle: TextStyle(
+  //                             // color: Colors.green.shade600,
+  //                             // fontWeight: FontWeight.bold,
+  //                           ),
+  //                           length: 4,
+  //                           // obscureText: true,
+  //                           // obscuringCharacter: '*',
+  //                           // obscuringWidget: FlutterLogo(
+  //                           //   size: 24,
+  //                           // ),
+  //                           blinkWhenObscuring: true,
+  //                           animationType: AnimationType.fade,
+  //                           // validator: (v) {
+  //                           //   if (v!.length < 4) {
+  //                           //     return "Invalid OTP Code";
+  //                           //   } else {
+  //                           //     return null;
+  //                           //   }
+  //                           // },
+  //                           pinTheme: PinTheme(
+  //                               shape: PinCodeFieldShape.box,
+  //                               borderRadius: BorderRadius.circular(5),
+  //                               fieldHeight: 50,
+  //                               fieldWidth: 40,
+  //                               activeFillColor: Colors.white,
+  //                               inactiveFillColor: Colors.white,
+  //                               selectedFillColor: Colors.white
+  //                           ),
+  //                           cursorColor: PRIMARY_COLOR,
+  //                           animationDuration: Duration(milliseconds: 300),
+  //                           enableActiveFill: true,
+  //                           // errorAnimationController: errorController,
+  //                           // controller: textEditingController,
+  //                           keyboardType: TextInputType.number,
+  //                           boxShadows: [
+  //                             BoxShadow(
+  //                               offset: Offset(0, 1),
+  //                               color: Colors.black12,
+  //                               blurRadius: 10,
+  //                             )
+  //                           ],
+  //                           onCompleted: (v) {
+  //                             print("Completed");
+  //                           },
+  //                           // onTap: () {
+  //                           //   print("Pressed");
+  //                           // },
+  //                           onChanged: (value) {
+  //                             print(value);
+  //                             setState(() {
+  //                               currentText = value;
+  //                             });
+  //                           },
+  //                           beforeTextPaste: (text) {
+  //                             print("Allowing to paste $text");
+  //                             //if you return true then it will show the paste confirmation dialog. Otherwise if false, then nothing will happen.
+  //                             //but you can show anything you want here, like your pop up saying wrong paste format or etc
+  //                             return true;
+  //                           },
+  //                         )),
+  //                   ),
+  //                 ]),
+  //           ),
+  //           actions: [
+  //             Row(
+  //               children: [
+  //                 Expanded(
+  //                     child: ElevatedButton(
+  //                         style: ButtonStyle(
+  //                           backgroundColor: MaterialStateProperty.resolveWith<Color>(
+  //                                 (Set<MaterialState> states) => Colors.white,
+  //                           ),
+  //                           shape: MaterialStateProperty.all(
+  //                               RoundedRectangleBorder(
+  //                                 borderRadius: BorderRadius.circular(4.0),
+  //                               )
+  //                           ),
+  //                         ),
+  //                         onPressed: () {
+  //                           Navigator.of(context).pop();
+  //                         },
+  //                         child: const Padding(
+  //                           padding: EdgeInsets.symmetric(vertical: 4.0),
+  //                           child: Text(
+  //                             'Cancel',
+  //                             style: TextStyle(
+  //                                 color: Colors.black),
+  //                             textAlign: TextAlign.center,
+  //                           ),
+  //                         )
+  //                     )
+  //                 ),
+  //                 SizedBox(
+  //                   width: 16,
+  //                 ),
+  //                 Expanded(
+  //                     child: ElevatedButton(
+  //                         style: ButtonStyle(
+  //                           backgroundColor: MaterialStateProperty.resolveWith<Color>(
+  //                                 (Set<MaterialState> states) => PRIMARY_COLOR,
+  //                           ),
+  //                           shape: MaterialStateProperty.all(
+  //                               RoundedRectangleBorder(
+  //                                 borderRadius: BorderRadius.circular(4.0),
+  //                               )
+  //                           ),
+  //                         ),
+  //                         onPressed: () {
+  //                           setState(() {
+  //                             sentOtp = true;
+  //                           });
+  //                           Navigator.of(context).pop();
+  //                           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Home()));
+  //                         },
+  //                         child: const Padding(
+  //                           padding: EdgeInsets.symmetric(vertical: 4.0),
+  //                           child: Text(
+  //                             'Submit',
+  //                             style: TextStyle(
+  //                                 color: Colors.white),
+  //                             textAlign: TextAlign.center,
+  //                           ),
+  //                         )
+  //                     )
+  //                 ),
+  //               ],
+  //             ),
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
+
+  // void _toggleObscureText() {
+  //   setState(() {
+  //     _obscureText = !_obscureText;
+  //     if (_obscureText == true) {
+  //       _iconVisible = Icons.visibility_off;
+  //     } else {
+  //       _iconVisible = Icons.visibility;
+  //     }
+  //   });
+  // }
+
+  void loginWithPhone() async {
+    auth.verifyPhoneNumber(
+      phoneNumber: phoneController.text,
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        await auth.signInWithCredential(credential).then((value){
+          print("You are logged in successfully");
+        });
+      },
+      verificationFailed: (FirebaseAuthException e) {
+        print(e.message);
+      },
+      codeSent: (String verificationId, int? resendToken) {
+        otpVisibility = true;
+        verificationID = verificationId;
+        isLoading=false;
+        setState(() {});
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {
+
       },
     );
   }
 
-  void _toggleObscureText() {
-    setState(() {
-      _obscureText = !_obscureText;
-      if (_obscureText == true) {
-        _iconVisible = Icons.visibility_off;
-      } else {
-        _iconVisible = Icons.visibility;
-      }
+  void verifyOTP() async {
+    PhoneAuthCredential credential = PhoneAuthProvider.credential(verificationId: verificationID, smsCode: otpController.text);
+
+    await auth.signInWithCredential(credential).then((value) async {
+      Fluttertoast.showToast(
+          msg: "You are logged in successfully",
+          toastLength: Toast.LENGTH_SHORT,
+          fontSize: 16.0
+      );
+      setState(() {
+        isLoading=false;
+      });
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) =>
+      const Home()));
     });
   }
 
   @override
   void initState() {
     super.initState();
+    phoneController.text="+91";
   }
 
   @override
   void dispose() {
-    _etPhone.dispose();
+    phoneController.dispose();
     super.dispose();
   }
 
@@ -240,8 +289,8 @@ class _SigninPageState extends State<SigninPage> {
               Container(
                 alignment: Alignment.center,
                 child: Container(
-                  height: 300.0,
-                  width: 250.0,
+                  height: 350.0,
+                  width: 300.0,
                   decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(36.0),
                       image: const DecorationImage(
@@ -251,17 +300,14 @@ class _SigninPageState extends State<SigninPage> {
                   ),
                 ),
               ),
-              const Text('Sign In'),
+              const Text('Sign In', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),),
               const SizedBox(
                 height: 10,
               ),
               TextFormField(
                 keyboardType: TextInputType.phone,
-                controller: _etPhone,
+                controller: phoneController,
                 style: const TextStyle(color: Colors.black54),
-                // onChanged: (textValue) {
-                //   setState(() {});
-                // },
                 decoration: InputDecoration(
                   focusedBorder: UnderlineInputBorder(
                       borderSide:
@@ -273,10 +319,20 @@ class _SigninPageState extends State<SigninPage> {
                   labelStyle: TextStyle(color: textColor),
                 ),
               ),
+              Visibility(child: Container(
+                margin: EdgeInsets.only(top: 10),
+                child: TextField(
+                  controller: otpController,
+                  decoration: InputDecoration(
+                      hintText: "Enter OTP here..."
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+              ),visible: otpVisibility,),
               const SizedBox(
                 height: 20,
               ),
-              ElevatedButton(
+              isLoading ? Center(child: CircularProgressIndicator(color: PRIMARY_COLOR,),) : ElevatedButton(
                   style: ButtonStyle(
                     backgroundColor: MaterialStateProperty.resolveWith<Color>(
                           (Set<MaterialState> states) => PRIMARY_COLOR,
@@ -288,13 +344,23 @@ class _SigninPageState extends State<SigninPage> {
                     ),
                   ),
                   onPressed: () {
-                    showOTPDialog(context);
-                    // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Home()));
+                    if(otpVisibility){
+                      setState(() {
+                        isLoading=true;
+                      });
+                      verifyOTP();
+                    }
+                    else {
+                      setState(() {
+                        isLoading=true;
+                      });
+                      loginWithPhone();
+                    }
                   },
-                  child: const Padding(
+                  child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 4.0),
                     child: Text(
-                      'Login',
+                      otpVisibility ? "Verify" : "Login",
                       style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,

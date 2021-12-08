@@ -2,14 +2,35 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:citi_policemen/signin.dart';
 import 'package:citi_policemen/userinfo.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geolocator/geolocator.dart' as lac;
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:location/location.dart';
 import 'app_constants.dart';
 import 'dart:ui' as ui;
+
+class HomePage extends StatelessWidget {
+  const HomePage({Key? key}) : super(key: key);
+
+  // This widget is the root of your application.
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Citi Police',
+      theme: ThemeData(
+          primaryColor: PRIMARY_COLOR,
+          primaryColorDark: PRIMARY_COLOR,
+          fontFamily: 'ABeeZee'
+      ),
+      home: Home(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
 
 class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
@@ -18,19 +39,46 @@ class Home extends StatefulWidget {
   _HomeState createState() => _HomeState();
 }
 
-class AppConstant {
-  static List<Map<String, dynamic>> list = [
-    {"title": "one", "id": "1", "lat": 21.122591, "lon": 79.1414301},
-    {"title": "two", "id": "2", "lat": 21.123533, "lon": 79.1444352},
-    {"title": "three", "id": "3", "lat": 21.12271, "lon": 79.149478},
-  ];
-}
-
 class _HomeState extends State<Home> {
-  LatLng _initialcameraposition = LatLng(0, 0);
   late GoogleMapController _gcontroller;
   Completer<GoogleMapController> _controller = Completer();
+  late bool _serviceEnabled;
+  late PermissionStatus _permissionGranted;
+  late LocationData _locationData;
+  Location location = Location();
   // Set<Circle> circles = {};
+  static late double lat=0, long=0;
+  bool markersAdded=false;
+
+  static List<Map<String, dynamic>> list = [];
+
+  Future getLatLng() async {
+    _locationData = await location.getLocation();
+    setState(() {
+      lat = _locationData.latitude!;
+      long = _locationData.longitude!;
+    });
+    Fluttertoast.showToast(msg: "Current Location found!");
+  }
+
+  Future getCloudFirestoreUsers() async {
+    await Firebase.initializeApp();
+    FirebaseFirestore.instance.collection("Users").get().then((querySnapshot) {
+      setState(() {
+      for (var value in querySnapshot.docs) {
+        if (value["lat"]!="0" || value["long"]!="0") {
+          list.add({
+            "lat": value["lat"],
+            "long": value["long"],
+            "uid": value["uid"]
+          });
+        }
+      }
+      });
+    }).catchError((onError) {
+      print(onError);
+    });
+  }
 
   void showLogout(context) {
     // set up the buttons
@@ -41,6 +89,7 @@ class _HomeState extends State<Home> {
         child: Text('No', style: TextStyle(color: PRIMARY_COLOR)));
     Widget continueButton = TextButton(
         onPressed: () {
+          FirebaseAuth.instance.signOut();
           Navigator.of(context).pop();
           Navigator.pushReplacement(
               context,
@@ -75,7 +124,7 @@ class _HomeState extends State<Home> {
     );
   }
 
-  _showUserInfo(id, lat, long) async {
+  _showUserInfo(lat, long, uid) async {
     return await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -87,31 +136,21 @@ class _HomeState extends State<Home> {
                 borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(16.0),
                     topRight: Radius.circular(16.0))),
-            child: UserInfo(userId: id, lat: lat, long: long,));
+            child: UserRelatedInfo(userId: uid, lat: lat, long: long));
       },
     );
   }
 
-  Set<Circle> circles = Set.from([Circle(
-    circleId: CircleId("1"),
-    center: LatLng(23.7985053, 90.3842538),
-    radius: 2000,
-    fillColor: Colors.transparent,
-    strokeColor: Color(0xff96ffca),
-    strokeWidth: 250
-  )]);
+  // Set<Circle> circles = Set.from([Circle(
+  //   circleId: CircleId("1"),
+  //   center: LatLng(lat, long),
+  //   radius: 2000,
+  //   fillColor: Colors.grey,
+  //   strokeColor: Color(0xff96ffca),
+  //   strokeWidth: 250
+  // )]);
 
   // Iterable markers = [];
-
-  // void _onMapCreated() {
-  //   _location.onLocationChanged.listen((l) async {
-  //     circles = Set.from([Circle(
-  //       circleId: CircleId("id"),
-  //       center: LatLng(AppConstant.list[0]['lat'],AppConstant.list[0]['lon'],),
-  //       radius: 4000,
-  //     )]);
-  //   });
-  // }
 
   late Uint8List markerIcon;
 
@@ -127,29 +166,38 @@ class _HomeState extends State<Home> {
     return markerIcon;
   }
 
-  // Future<Uint8List> changeIcon(index) async {
-  //   index = await getBytesFromAsset('assets/images/mark_green.png', 100);
-  //   setState(() {});
-  //   return markerIcon;
-  // }
+  Future checkPermission() async {
+    _permissionGranted = await location.hasPermission();
+    if (_permissionGranted == PermissionStatus.denied) {
+      _permissionGranted = await location.requestPermission();
+      if (_permissionGranted != PermissionStatus.granted) {
+        return;
+      }
+    }
+
+    _serviceEnabled = await location.serviceEnabled();
+    if (!_serviceEnabled) {
+      _serviceEnabled = await location.requestService();
+      if (!_serviceEnabled) {
+        return;
+      }
+    }
+  }
 
   Iterable markers = [];
 
   Future setMarkers(Iterable _markers) async {
     await getIcon();
     _markers = Iterable.generate(
-        AppConstant.list.length, (index) {
+        list.length, (index) {
       return Marker(
         icon: BitmapDescriptor.fromBytes(markerIcon),
-        markerId: MarkerId(AppConstant.list[index]['id']),
+        markerId: MarkerId(index.toString()),
         position: LatLng(
-          AppConstant.list[index]['lat'],
-          AppConstant.list[index]['lon'],
-        ),
+          double.parse(list[index]['lat'].toString()),
+      double.parse(list[index]['long'].toString())),
         onTap: () {
-          // print(_markers.elementAt(index));
-          _showUserInfo(AppConstant.list[index]['id'],
-              AppConstant.list[index]['lat'].toString(), AppConstant.list[index]['lon'].toString());
+          _showUserInfo(list[index]['lat'].toString(), list[index]['long'].toString(), list[index]['uid'].toString());
         },
       );
     });
@@ -158,36 +206,13 @@ class _HomeState extends State<Home> {
     });
   }
 
-  // Future<Position> getLocation() async {
-  //   var currentLocation;
-  //   try {
-  //     currentLocation = await Geolocator.getCurrentPosition(
-  //         desiredAccuracy: lac.LocationAccuracy.best);
-  //   } catch (e) {
-  //     currentLocation = null;
-  //   }
-  //   return currentLocation;
-  // }
-  //
-  // Future showLatlong() async {
-  //   Position position = await getLocation();
-  //   print(position.latitude.toString()+" "+position.longitude.toString());
-  //   await GetAddressFromLatLong(position);
-  // }
-  //
-  // Future<void> GetAddressFromLatLong(Position position)async {
-  //   List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
-  //   print(placemarks);
-  //   Placemark place = placemarks[0];
-  //   print(place.street);
-  // }
-
   @override
   void initState() {
-    // _onMapCreated();
-    // showLatlong();
-    setMarkers(markers);
     super.initState();
+    checkPermission();
+    Firebase.initializeApp();
+    getCloudFirestoreUsers();
+    setMarkers(markers);
   }
 
   @override
@@ -203,9 +228,18 @@ class _HomeState extends State<Home> {
         ),
         backgroundColor: PRIMARY_COLOR,
         actions: [
-          TextButton(onPressed: () {
-            showLogout(context);
-          }, child: Text("Logout", style: TextStyle(color: Colors.white),))
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: TextButton(onPressed: () {
+              Navigator.pushReplacement(context, PageRouteBuilder(pageBuilder: (_, __, ___) => Home()));
+            }, child: Text("Refresh", style: TextStyle(color: Colors.white),)),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: TextButton(onPressed: () {
+              showLogout(context);
+            }, child: Icon(Icons.logout, color: Colors.white,)),
+          )
         ],
       ),
       body: Stack(
@@ -213,25 +247,19 @@ class _HomeState extends State<Home> {
           SizedBox(
             height: MediaQuery.of(context).size.height,
             width: MediaQuery.of(context).size.width,
-            child: GoogleMap(
-              initialCameraPosition: CameraPosition(target: LatLng(21.1225911, 79.1414301),
-                  zoom: 16),
-              // initialCameraPosition:
-              // CameraPosition(target: _initialcameraposition),
+            child: markers.isNotEmpty ? GoogleMap(
+              initialCameraPosition: CameraPosition(target: LatLng(lat, long)),
               mapType: MapType.normal,
-              // onMapCreated: _onMapCreated,
               onMapCreated: (GoogleMapController controller) {
                 _controller.complete(controller);
               },
               myLocationEnabled: true,
               zoomControlsEnabled: true,
-              compassEnabled: true,
-              indoorViewEnabled: true,
               zoomGesturesEnabled: true,
               markers: Set.from(
                 markers,
               ),
-            ),
+            ) : Center(child: CircularProgressIndicator(color: PRIMARY_COLOR,),),
           ),
         ],
       ),

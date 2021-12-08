@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "23071358101-8hcgl2l0qklq60rhhae0mt1pn4lr8o9h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.flutter.citi_police",
+            "certificate_hash": "bbcf9f1fad2ae97b5f03bfbe22fc16b2e880aa2f"
+          }
+        },
+        {
           "client_id": "23071358101-9djta4efedbr00bra656i4r512f5ae7k.apps.googleusercontent.com",
           "client_type": 3
         }
