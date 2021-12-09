@@ -26,6 +26,7 @@ class MapUtils {
     if (await canLaunch(uri.toString())) {
       await launch(uri.toString());
     } else {
+      Fluttertoast.showToast(msg: "Could not open the map!");
       throw 'Could not launch ${uri.toString()}';
     }
   }
@@ -33,10 +34,10 @@ class MapUtils {
 
 // ignore: must_be_immutable
 class UserRelatedInfo extends StatefulWidget {
-  String lat, long, userId;
+  String lat, long, userId, name, mobile;
 
   UserRelatedInfo(
-      {Key? key, required this.userId, required this.lat, required this.long})
+      {Key? key, required this.userId, required this.lat, required this.long, required this.name, required this.mobile})
       : super(key: key);
 
   @override
@@ -91,10 +92,10 @@ class _UserRelatedInfoState extends State<UserRelatedInfo> {
                   Text("Time: ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0))),
                   SizedBox(height: 16.0,),
                   Container(margin: EdgeInsets.all(8.0), child:
-                  Text("Name: ",  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0))),
+                  Text("Name: "+widget.name,  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0))),
                   SizedBox(height: 16.0,),
                   Container(margin: EdgeInsets.all(8.0), child:
-                  Text("Mobile No: ",  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0)))
+                  Text("Mobile No: "+widget.mobile,  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0)))
                 ]
             ),
           ),

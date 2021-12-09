@@ -70,7 +70,9 @@ class _HomeState extends State<Home> {
           list.add({
             "lat": value["lat"],
             "long": value["long"],
-            "uid": value["uid"]
+            "uid": value["uid"],
+            "name": value["name"],
+            "mobile": value["mobile"]
           });
         }
       }
@@ -124,7 +126,7 @@ class _HomeState extends State<Home> {
     );
   }
 
-  _showUserInfo(lat, long, uid) async {
+  _showUserInfo(lat, long, uid, name, mobile) async {
     return await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -136,7 +138,7 @@ class _HomeState extends State<Home> {
                 borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(16.0),
                     topRight: Radius.circular(16.0))),
-            child: UserRelatedInfo(userId: uid, lat: lat, long: long));
+            child: UserRelatedInfo(userId: uid, lat: lat, long: long, name: name, mobile: mobile,));
       },
     );
   }
@@ -197,7 +199,8 @@ class _HomeState extends State<Home> {
           double.parse(list[index]['lat'].toString()),
       double.parse(list[index]['long'].toString())),
         onTap: () {
-          _showUserInfo(list[index]['lat'].toString(), list[index]['long'].toString(), list[index]['uid'].toString());
+          _showUserInfo(list[index]['lat'].toString(), list[index]['long'].toString(), list[index]['uid'].toString(), list[index]['name'].toString(),
+              list[index]['mobile'].toString());
         },
       );
     });
