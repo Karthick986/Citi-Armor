@@ -7,28 +7,21 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:location/location.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({Key? key}) : super(key: key);
+import 'issue_dialog.dart';
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(home: Home(),
-      title: "Citi Armor",
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-          primaryColor: PRIMARY_COLOR,
-          primaryColorDark: PRIMARY_COLOR,
-          fontFamily: 'ABeeZee'
-      ),);
-  }
-}
+late SharedPreferences prefs;
 
 class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
 
   @override
   _HomeState createState() => _HomeState();
+
+  static Future init() async {
+    prefs = await SharedPreferences.getInstance();
+  }
 }
 
 class _HomeState extends State<Home> {
@@ -36,22 +29,32 @@ class _HomeState extends State<Home> {
 
   Location location = Location();
 
-  Future getLatLng() async {
+  Future<void> _showResolve(context) async {
+    return showDialog(barrierDismissible: false, context: context, builder: (_) {
+      return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          title: Text("Raise Issue"), content: IssueDialog());
+    });
+  }
+
+  getLatLng() async {
     _locationData = await location.getLocation();
     setState(() {
       lat = _locationData.latitude.toString();
       long = _locationData.longitude.toString();
     });
+    Navigator.pop(context);
     if (lat.isNotEmpty && long.isNotEmpty) {
       Fluttertoast.showToast(msg: "Current Location found!");
       await FirebaseFirestore.instance
           .collection("Users").doc(FirebaseAuth.instance.currentUser!.uid)
           .update({'lat': lat, 'long': long});
-
+      _showResolve(context);
     } else {
       Fluttertoast.showToast(msg: "Location not found!");
     }
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Home()));
   }
 
   late bool _serviceEnabled;
@@ -97,8 +100,8 @@ class _HomeState extends State<Home> {
         });
   }
 
-  void showLogout(context) {
-    // set up the buttons
+  void showLogout(context) async {
+    await Home.init();
     Widget cancelButton = TextButton(
         onPressed: () {
           Navigator.pop(context);
@@ -106,6 +109,7 @@ class _HomeState extends State<Home> {
         child: Text('No', style: TextStyle(color: PRIMARY_COLOR)));
     Widget continueButton = TextButton(
         onPressed: () {
+          prefs.setString("isLoggedIn", "0");
           FirebaseAuth.instance.signOut();
           Navigator.of(context).pop();
           Navigator.pushReplacement(
@@ -156,7 +160,7 @@ class _HomeState extends State<Home> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: PRIMARY_COLOR,
-        title: Text("Citi Armor"),
+        title: Text("Damini-User"),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
@@ -187,7 +191,7 @@ class _HomeState extends State<Home> {
                             await FirebaseFirestore.instance
                                 .collection("Users").doc(FirebaseAuth.instance.currentUser!.uid)
                                 .update({'lat': "0", 'long': "0"});
-                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Home()));
+                            Navigator.pushReplacement(context, PageRouteBuilder(pageBuilder: (_, __, ___) => Home()));
                           },
                         )),
                   ),
@@ -208,7 +212,7 @@ class _HomeState extends State<Home> {
                           await FirebaseFirestore.instance
                               .collection("Users").doc(FirebaseAuth.instance.currentUser!.uid)
                               .update({'lat': "0", 'long': "0"});
-                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Home()));
+                          Navigator.pushReplacement(context, PageRouteBuilder(pageBuilder: (_, __, ___) => Home()));
                         },
                       ),
                     ))

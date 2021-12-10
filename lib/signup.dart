@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
@@ -11,30 +12,40 @@ import 'package:flutter/services.dart';
 import 'package:citi_police/app_constants.dart';
 import 'package:citi_police/signin.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../home.dart';
+
+late SharedPreferences prefs;
 
 class SignupPage extends StatefulWidget {
   const SignupPage({Key? key}) : super(key: key);
 
   @override
   _SignupPageState createState() => _SignupPageState();
+
+  static Future init() async {
+    prefs = await SharedPreferences.getInstance();
+  }
 }
 
 class _SignupPageState extends State<SignupPage> {
   TextEditingController nameController = TextEditingController();
   TextEditingController phoneController = TextEditingController(text: "+91");
+  TextEditingController ageController = TextEditingController();
   TextEditingController otpController = TextEditingController();
 
   FirebaseAuth auth = FirebaseAuth.instance;
 
   bool otpVisibility = false;
+  dynamic _gender;
 
-  String verificationID = "";
+  String verificationID = "", deviceToken="";
 
   IO.File? _imageFile;
   late String byteImage;
   bool isLoading = false;
   final picker = ImagePicker();
+  List genderList = [{'status': 'Male', 'gender_id': '1'}, {'status': 'Female', 'gender_id': '0'}];
 
   Future pickImage(int i) async {
     switch (i) {
@@ -124,7 +135,7 @@ class _SignupPageState extends State<SignupPage> {
             height: 40,
           ),
           const Text(
-            'Sign In', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            'Sign Up', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(
             height: 10,
@@ -166,18 +177,53 @@ class _SignupPageState extends State<SignupPage> {
               labelStyle: TextStyle(color: textColor),
             ),
           ),
-          Visibility(child: Container(
-            margin: EdgeInsets.only(top: 10),
-            child: TextField(
-              controller: otpController,
-              decoration: InputDecoration(
-                hintText: "Enter OTP here..."
-              ),
-              keyboardType: TextInputType.number,
-            ),
-          ),visible: otpVisibility,),
           SizedBox(
             height: 10,
+          ),
+          TextFormField(
+            keyboardType: TextInputType.phone,
+            controller: ageController,
+            style: TextStyle(color: textColor),
+            decoration: InputDecoration(
+              focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: PRIMARY_COLOR, width: 2.0)),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFFCCCCCC)),
+              ),
+              labelText: 'Age',
+              labelStyle: TextStyle(color: textColor),
+            ),
+          ),
+          SizedBox(
+            height: 10,
+          ),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+            Container(
+              child: const Text('Gender:'),
+              margin: const EdgeInsets.only(
+                  top: 10.0, left: 15.0, right: 15.0),
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 10.0, right: 10.0),
+              padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 0),
+              child: DropdownButton(
+                items: genderList.map((item) {
+                  return DropdownMenuItem(
+                    child: Text(item['status']),
+                    value: item['gender_id'].toString(),
+                  );
+                }).toList(),
+                onChanged: (newVal) {
+                  setState(() {
+                    _gender = newVal;
+                  });
+                },
+                value: _gender,
+              ),
+            ),
+          ]),
+          SizedBox(
+            height: 5,
           ),
           Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
             Container(
@@ -233,15 +279,29 @@ class _SignupPageState extends State<SignupPage> {
                     onPressed: () {
                       _showImageOptions(context);
                     },
-                    child: Text(
-                      'Re-take',
-                      style: TextStyle(fontSize: 13, color: textColor),
-                      textAlign: TextAlign.center,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 4.0, right: 4),
+                      child: Text(
+                        'Re-take',
+                        style: TextStyle(fontSize: 13, color: textColor),
+                        textAlign: TextAlign.center,
+                      ),
                     ))
                     : SizedBox(),
               ],
             ),
           ]),
+          Visibility(child: Container(
+            margin: EdgeInsets.only(top: 10),
+            child: TextField(
+              controller: otpController,
+              autofocus: true,
+              decoration: InputDecoration(
+                  hintText: "Enter OTP here..."
+              ),
+              keyboardType: TextInputType.number,
+            ),
+          ),visible: otpVisibility,),
           SizedBox(height: 20,),
           isLoading ? Center(child: CircularProgressIndicator(color: PRIMARY_COLOR,),) : TextButton(
               style: ButtonStyle(
@@ -253,22 +313,29 @@ class _SignupPageState extends State<SignupPage> {
                 )),
               ),
               onPressed: () {
-                if(otpVisibility){
-                  setState(() {
-                    isLoading=true;
-                  });
-                  verifyOTP();
-                }
-                else {
-                  setState(() {
-                    isLoading=true;
-                  });
-                  loginWithPhone();
+                if (nameController.text.isEmpty || phoneController.text.isEmpty || ageController.text.isEmpty || _gender==null
+                || _imageFile==null) {
+                  Fluttertoast.showToast(msg: "Fill all details");
+                } else if (!phoneController.text.contains("+91")){
+                  Fluttertoast.showToast(msg: "Please add country code, ex. +91");
+                } else {
+                  if (otpVisibility) {
+                    setState(() {
+                      isLoading = true;
+                    });
+                    verifyOTP();
+                  }
+                  else {
+                    setState(() {
+                      isLoading = true;
+                    });
+                    loginWithPhone();
+                  }
                 }
               },
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 5.0),
-                child: Text(otpVisibility ? "Verify" : "Login",
+                child: Text(otpVisibility ? "Verify" : "Register",
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -276,6 +343,26 @@ class _SignupPageState extends State<SignupPage> {
                   textAlign: TextAlign.center,
                 ),
               )),
+          const SizedBox(
+            height: 20,
+          ),
+          Center(
+            child: GestureDetector(
+              onTap: () {
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const SignInPage()));
+              },
+              child: Wrap(
+                children: const [
+                  Text(
+                    'Already have an account? ',
+                  ),
+                  Text(
+                    'Login here',
+                  )
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -304,10 +391,21 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+
   void verifyOTP() async {
+    await SignupPage.init();
+
+    await _firebaseMessaging.getToken().then((token) async {
+      assert(token != null);
+      print("Firebase token: " + token!);
+      deviceToken = token;
+    });
+
     PhoneAuthCredential credential = PhoneAuthProvider.credential(verificationId: verificationID, smsCode: otpController.text);
 
     await auth.signInWithCredential(credential).then((value) async {
+      prefs.setString("isLoggedIn", "1");
       Fluttertoast.showToast(
           msg: "You are logged in successfully",
           toastLength: Toast.LENGTH_SHORT,
@@ -315,7 +413,8 @@ class _SignupPageState extends State<SignupPage> {
       );
       await FirebaseFirestore.instance
           .collection("Users").doc(auth.currentUser!.uid)
-          .set({'name': nameController.text, 'mobile': phoneController.text, "lat": "0", "long": "0", "uid": auth.currentUser!.uid.toString()});
+          .set({'name': nameController.text, 'mobile': phoneController.text, "lat": "0", "long": "0",
+        "uid": auth.currentUser!.uid.toString(), "gender": _gender, "age": ageController.text, "token": deviceToken});
       setState(() {
         isLoading=false;
       });

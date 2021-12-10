@@ -1,13 +1,21 @@
 import 'package:citi_police/page_model.dart';
+import 'package:citi_police/signin.dart';
 import 'package:citi_police/signup.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'app_constants.dart';
 import 'overroad.dart';
+
+late SharedPreferences prefs;
 
 class OnboardingPage extends StatefulWidget {
   @override
   _OnboardingPageState createState() => _OnboardingPageState();
+
+  static Future init() async {
+    prefs = await SharedPreferences.getInstance();
+  }
 }
 
 class _OnboardingPageState extends State<OnboardingPage> {
@@ -42,6 +50,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   void initState() {
     super.initState();
+    OnboardingPage.init();
   }
 
   @override
@@ -59,9 +68,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
           child: OverBoard(
             pages: _pageList,
             showBullets: true,
-            finishCallback: () {
+            finishCallback: () async {
+              await OnboardingPage.init();
+              prefs.setString('onBoard', '1');
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) =>
-              const SignupPage()));
+              const SignInPage()));
             },
           ),
         )

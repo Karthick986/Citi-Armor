@@ -1,67 +1,172 @@
 import 'dart:async';
 import 'package:citi_police/signup.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/painting.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'dart:io' as IO;
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart';
+import 'package:citi_police/app_constants.dart';
+import 'package:citi_police/signin.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
-import 'app_constants.dart';
-import 'home.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../home.dart';
 
-class SigninPage extends StatefulWidget {
-  const SigninPage({Key? key}) : super(key: key);
+late SharedPreferences prefs;
+
+class SignInPage extends StatefulWidget {
+  const SignInPage({Key? key}) : super(key: key);
 
   @override
-  _SigninPageState createState() => _SigninPageState();
+  _SignInPageState createState() => _SignInPageState();
+
+  static Future init() async {
+    prefs = await SharedPreferences.getInstance();
+  }
 }
 
-class _SigninPageState extends State<SigninPage> {
-  final TextEditingController _etPhone = TextEditingController();
-  bool _obscureText = true;
-  IconData _iconVisible = Icons.visibility_off;
-
-  bool sentOtp=false;
-  bool isLoading = false;
-
-  String verificationId="";
-
-  final formKey = GlobalKey<FormState>();
-  StreamController<ErrorAnimationType>? errorController;
-  bool hasError = false;
-  String currentText = "";
-
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+class _SignInPageState extends State<SignInPage> {
+  TextEditingController phoneController = TextEditingController(text: "+91");
   TextEditingController otpController = TextEditingController();
 
-  void verifyOTP() async {
+  FirebaseAuth auth = FirebaseAuth.instance;
 
-    PhoneAuthCredential credential = PhoneAuthProvider.credential(verificationId: verificationId, smsCode: otpController.text);
+  bool otpVisibility = false;
 
-    await _auth.signInWithCredential(credential).then((value){
-      print("You are logged in successfully");
-      Fluttertoast.showToast(
-          msg: "You are logged in successfully",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.CENTER,
-          timeInSecForIosWeb: 1,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-          fontSize: 16.0
-      );
-      Navigator.of(context).pop();
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) =>
-      const Home()));
-    });
+  String verificationID = "", deviceToken="";
+  bool isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: ListView(
+        padding: EdgeInsets.all(16),
+        children: [
+          Container(
+            alignment: Alignment.center,
+            margin: EdgeInsets.only(top: 20),
+            child: Container(
+              height: 150.0,
+              width: 200.0,
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(50.0),
+                  image: const DecorationImage(
+                      image: AssetImage(
+                        "assets/images/login.jpeg",
+                      ),
+                      fit: BoxFit.cover)),
+            ),
+          ),
+          const SizedBox(
+            height: 40,
+          ),
+          const Text(
+            'Sign In', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(
+            height: 10,
+          ),
+          TextFormField(
+            keyboardType: TextInputType.phone,
+            controller: phoneController,
+            style: TextStyle(color: textColor),
+            onChanged: (textValue) {
+              setState(() {});
+            },
+            decoration: InputDecoration(
+              focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: PRIMARY_COLOR, width: 2.0)),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFFCCCCCC)),
+              ),
+              labelText: 'Mobile number',
+              labelStyle: TextStyle(color: textColor),
+            ),
+          ),
+          Visibility(child: Container(
+            margin: EdgeInsets.only(top: 10),
+            child: TextField(
+              controller: otpController,
+              decoration: InputDecoration(
+                  hintText: "Enter OTP here..."
+              ),
+              keyboardType: TextInputType.number,
+            ),
+          ),visible: otpVisibility,),
+          SizedBox(height: 20,),
+          isLoading ? Center(child: CircularProgressIndicator(color: PRIMARY_COLOR,),) : TextButton(
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                      (Set<MaterialState> states) => PRIMARY_COLOR,
+                ),
+                shape: MaterialStateProperty.all(RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4.0),
+                )),
+              ),
+              onPressed: () {
+                if (phoneController.text.isEmpty) {
+                  Fluttertoast.showToast(msg: "Enter Mobile no.");
+                } else if (!phoneController.text.contains("+91")) {
+                  Fluttertoast.showToast(msg: "Please add country code, ex. +91");
+                } else {
+                  if (otpVisibility) {
+                    setState(() {
+                      isLoading = true;
+                    });
+                    verifyOTP();
+                  }
+                  else {
+                    setState(() {
+                      isLoading = true;
+                    });
+                    loginWithPhone();
+                  }
+                }
+              },
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 5.0),
+                child: Text(otpVisibility ? "Verify" : "Login",
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+              )),
+          const SizedBox(
+            height: 20,
+          ),
+          Center(
+            child: GestureDetector(
+              onTap: () {
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const SignupPage()));
+              },
+              child: Wrap(
+                children: const [
+                  Text(
+                    'Not have an account? ',
+                  ),
+                  Text(
+                    'Create one',
+                  )
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void loginWithPhone() async {
-    _auth.verifyPhoneNumber(
-      phoneNumber: _etPhone.text,
+    auth.verifyPhoneNumber(
+      phoneNumber: phoneController.text,
       verificationCompleted: (PhoneAuthCredential credential) async {
-        setState(() {
-          otpController.text = credential.smsCode!;
-        });
-        await _auth.signInWithCredential(credential).then((value){
+        await auth.signInWithCredential(credential).then((value){
           print("You are logged in successfully");
         });
       },
@@ -69,9 +174,9 @@ class _SigninPageState extends State<SigninPage> {
         print(e.message);
       },
       codeSent: (String verificationId, int? resendToken) {
-        // otpVisibility = true;
-        this.verificationId = verificationId;
-        showOTPDialog(context);
+        otpVisibility = true;
+        verificationID = verificationId;
+        isLoading=false;
         setState(() {});
       },
       codeAutoRetrievalTimeout: (String verificationId) {
@@ -80,305 +185,32 @@ class _SigninPageState extends State<SigninPage> {
     );
   }
 
-  Future<void> showOTPDialog(context) {
-    return showDialog(
-      barrierDismissible: false,
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          contentPadding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          title: Text(
-            'Verify OTP',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 18, color: PRIMARY_COLOR, fontWeight: FontWeight.bold),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          margin: EdgeInsets.only(top: 8.0),
-                          padding: EdgeInsets.all(4.0),
-                          width: MediaQuery.of(context).size.width,
-                          child: Text('OTP Code has been sent to your mobile number',
-                            style: TextStyle(fontSize: 13, color: Colors.white,), textAlign: TextAlign.center,),
-                          color: PRIMARY_COLOR,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8.0,),
-                  Container(child: Text('Enter OTP here...',
-                      style: TextStyle(color: PRIMARY_COLOR))
-                  ),
-                  Form(
-                    key: formKey,
-                    child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 8.0, horizontal: 50),
-                        child: PinCodeTextField(
-                          appContext: context,
-                          pastedTextStyle: TextStyle(
-                            // color: Colors.green.shade600,
-                            // fontWeight: FontWeight.bold,
-                          ),
-                          length: 6,
-                          // obscureText: true,
-                          // obscuringCharacter: '*',
-                          // obscuringWidget: FlutterLogo(
-                          //   size: 24,
-                          // ),
-                          blinkWhenObscuring: true,
-                          animationType: AnimationType.fade,
-                          // validator: (v) {
-                          //   if (v!.length < 4) {
-                          //     return "Invalid OTP Code";
-                          //   } else {
-                          //     return null;
-                          //   }
-                          // },
-                          pinTheme: PinTheme(
-                              shape: PinCodeFieldShape.box,
-                              borderRadius: BorderRadius.circular(5),
-                              fieldHeight: 50,
-                              fieldWidth: 40,
-                              activeFillColor: Colors.white,
-                              inactiveFillColor: Colors.white,
-                              selectedFillColor: Colors.white
-                          ),
-                          cursorColor: PRIMARY_COLOR,
-                          controller: otpController,
-                          animationDuration: Duration(milliseconds: 300),
-                          enableActiveFill: true,
-                          // errorAnimationController: errorController,
-                          // controller: textEditingController,
-                          keyboardType: TextInputType.number,
-                          boxShadows: [
-                            BoxShadow(
-                              offset: Offset(0, 1),
-                              color: Colors.black12,
-                              blurRadius: 10,
-                            )
-                          ],
-                          onCompleted: (v) {
-                            print("Completed");
-                          },
-                          // onTap: () {
-                          //   print("Pressed");
-                          // },
-                          onChanged: (value) {
-                            print(value);
-                            setState(() {
-                              currentText = value;
-                            });
-                          },
-                          beforeTextPaste: (text) {
-                            print("Allowing to paste $text");
-                            //if you return true then it will show the paste confirmation dialog. Otherwise if false, then nothing will happen.
-                            //but you can show anything you want here, like your pop up saying wrong paste format or etc
-                            return true;
-                          },
-                        )),
-                  ),
-                ]),
-          ),
-          actions: [
-            Row(
-              children: [
-                Expanded(
-                    child: ElevatedButton(
-                        style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.resolveWith<Color>(
-                                (Set<MaterialState> states) => Colors.white,
-                          ),
-                          shape: MaterialStateProperty.all(
-                              RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4.0),
-                              )
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 4.0),
-                          child: Text(
-                            'Cancel',
-                            style: TextStyle(
-                                color: Colors.black),
-                            textAlign: TextAlign.center,
-                          ),
-                        )
-                    )
-                ),
-                SizedBox(
-                  width: 16,
-                ),
-                Expanded(
-                    child: ElevatedButton(
-                        style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.resolveWith<Color>(
-                                (Set<MaterialState> states) => PRIMARY_COLOR,
-                          ),
-                          shape: MaterialStateProperty.all(
-                              RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4.0),
-                              )
-                          ),
-                        ),
-                        onPressed: () {
-                          verifyOTP();
-                        },
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 4.0),
-                          child: Text(
-                            'Submit',
-                            style: TextStyle(
-                                color: Colors.white),
-                            textAlign: TextAlign.center,
-                          ),
-                        )
-                    )
-                ),
-              ],
-            ),
-          ],
-        );
-      },
-    );
-  }
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
-  void _toggleObscureText() {
-    setState(() {
-      _obscureText = !_obscureText;
-      if (_obscureText == true) {
-        _iconVisible = Icons.visibility_off;
-      } else {
-        _iconVisible = Icons.visibility;
-      }
+  void verifyOTP() async {
+    await SignInPage.init();
+    PhoneAuthCredential credential = PhoneAuthProvider.credential(verificationId: verificationID, smsCode: otpController.text);
+
+    await auth.signInWithCredential(credential).then((value) async {
+      prefs.setString("isLoggedIn", "1");
+      await _firebaseMessaging.getToken().then((token) async {
+        assert(token != null);
+        print("Firebase token: " + token!);
+        deviceToken = token;
+      });
+      Fluttertoast.showToast(
+          msg: "You are logged in successfully",
+          toastLength: Toast.LENGTH_SHORT,
+          fontSize: 16.0
+      );
+      await FirebaseFirestore.instance
+          .collection("Users").doc(auth.currentUser!.uid)
+          .update({"token": deviceToken});
+      setState(() {
+        isLoading=false;
+      });
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) =>
+      const Home()));
     });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    _etPhone.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-        body: Center(
-          child: ListView(
-            shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(32, 48, 32, 32),
-            children: <Widget>[
-              Container(
-                alignment: Alignment.center,
-                child: Container(
-                  height: 150.0,
-                  width: 200.0,
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(36.0),
-                      image: const DecorationImage(
-                          image: AssetImage(
-                            "assets/images/login.jpeg",
-                          ), fit: BoxFit.cover)
-                  ),
-                ),
-              ),
-              const SizedBox(
-                height: 40,
-              ),
-              const Text('Sign In'),
-              const SizedBox(
-                height: 10,
-              ),
-              TextFormField(
-                keyboardType: TextInputType.phone,
-                controller: _etPhone,
-                style: const TextStyle(color: Colors.black54),
-                // onChanged: (textValue) {
-                //   setState(() {});
-                // },
-                decoration: InputDecoration(
-                  focusedBorder: UnderlineInputBorder(
-                      borderSide:
-                      BorderSide(color: PRIMARY_COLOR, width: 2.0)),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xFFCCCCCC)),
-                  ),
-                  labelText: 'Mobile number',
-                  labelStyle: TextStyle(color: textColor),
-                ),
-              ),
-              const SizedBox(
-                height: 20,
-              ),
-              ElevatedButton(
-                  style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.resolveWith<Color>(
-                          (Set<MaterialState> states) => PRIMARY_COLOR,
-                    ),
-                    shape: MaterialStateProperty.all(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4.0),
-                        )
-                    ),
-                  ),
-                  onPressed: () {
-                    loginWithPhone();
-                    // phoneSignIn(phoneNumber: _etPhone.text);
-                    // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Home()));
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 4.0),
-                    child: Text(
-                      'Login',
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white),
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-              ),
-              const SizedBox(
-                height: 40,
-              ),
-              Center(
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const SignupPage()));
-                  },
-                  child: Wrap(
-                    children: const [
-                      Text(
-                        'Not have account? ',
-                      ),
-                      Text(
-                        'Create one',
-                      )
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(
-                height: 30,
-              ),
-            ],
-          ),
-        ));
   }
 }
