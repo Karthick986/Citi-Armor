@@ -1,38 +1,82 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'app_constants.dart';
 import 'home.dart';
+
+late SharedPreferences prefs;
 
 class SigninPage extends StatefulWidget {
   const SigninPage({Key? key}) : super(key: key);
 
   @override
   _SigninPageState createState() => _SigninPageState();
+
+  static Future init() async {
+    prefs = await SharedPreferences.getInstance();
+  }
 }
 
 class _SigninPageState extends State<SigninPage> {
   TextEditingController phoneController = TextEditingController(text: "+91");
+  TextEditingController passController = TextEditingController();
+
   bool _obscureText = true;
   IconData _iconVisible = Icons.visibility_off;
 
-  TextEditingController otpController = TextEditingController();
+  // TextEditingController otpController = TextEditingController();
 
   FirebaseAuth auth = FirebaseAuth.instance;
 
   bool otpVisibility = false, isLoading = false;
-  String verificationID = "";
 
-  final formKey = GlobalKey<FormState>();
-  TextEditingController textEditingController = TextEditingController();
-  StreamController<ErrorAnimationType>? errorController;
-  bool hasError = false;
-  String currentText = "";
+  // String verificationID = "";
+
+  void _toggleObscureText() {
+    setState(() {
+      _obscureText = !_obscureText;
+      if (_obscureText == true) {
+        _iconVisible = Icons.visibility_off;
+      } else {
+        _iconVisible = Icons.visibility;
+      }
+    });
+  }
+
+  String deviceToken = "";
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+
+  Future login() async {
+    await SigninPage.init();
+    await _firebaseMessaging.getToken().then((token) async {
+      assert(token != null);
+      print("Firebase token: " + token!);
+      deviceToken = token;
+    });
+    Fluttertoast.showToast(
+        msg: "You are logged in successfully",
+        toastLength: Toast.LENGTH_SHORT,
+        fontSize: 16.0);
+    await FirebaseFirestore.instance
+        .collection("Cops")
+        .doc(phoneController.text)
+        .set({"token": deviceToken});
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  // final formKey = GlobalKey<FormState>();
+  // StreamController<ErrorAnimationType>? errorController;
+  // bool hasError = false;
+  // String currentText = "";
 
   // Future<void> showOTPDialog(context) {
   //   return showDialog(
@@ -226,50 +270,51 @@ class _SigninPageState extends State<SigninPage> {
   //   });
   // }
 
-  void loginWithPhone() async {
-    auth.verifyPhoneNumber(
-      phoneNumber: phoneController.text,
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        await auth.signInWithCredential(credential).then((value){
-          print("You are logged in successfully");
-        });
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        print(e.message);
-      },
-      codeSent: (String verificationId, int? resendToken) {
-        otpVisibility = true;
-        verificationID = verificationId;
-        isLoading=false;
-        setState(() {});
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {
+  // void loginWithPhone() async {
+  //   auth.verifyPhoneNumber(
+  //     phoneNumber: phoneController.text,
+  //     verificationCompleted: (PhoneAuthCredential credential) async {
+  //       await auth.signInWithCredential(credential).then((value){
+  //         print("You are logged in successfully");
+  //       });
+  //     },
+  //     verificationFailed: (FirebaseAuthException e) {
+  //       print(e.message);
+  //     },
+  //     codeSent: (String verificationId, int? resendToken) {
+  //       otpVisibility = true;
+  //       verificationID = verificationId;
+  //       isLoading=false;
+  //       setState(() {});
+  //     },
+  //     codeAutoRetrievalTimeout: (String verificationId) {
+  //
+  //     },
+  //   );
+  // }
 
-      },
-    );
-  }
-
-  void verifyOTP() async {
-    PhoneAuthCredential credential = PhoneAuthProvider.credential(verificationId: verificationID, smsCode: otpController.text);
-
-    await auth.signInWithCredential(credential).then((value) async {
-      Fluttertoast.showToast(
-          msg: "You are logged in successfully",
-          toastLength: Toast.LENGTH_SHORT,
-          fontSize: 16.0
-      );
-      setState(() {
-        isLoading=false;
-      });
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) =>
-      const Home()));
-    });
-  }
+  // void verifyOTP() async {
+  //   PhoneAuthCredential credential = PhoneAuthProvider.credential(verificationId: verificationID, smsCode: otpController.text);
+  //
+  //   await auth.signInWithCredential(credential).then((value) async {
+  //     Fluttertoast.showToast(
+  //         msg: "You are logged in successfully",
+  //         toastLength: Toast.LENGTH_SHORT,
+  //         fontSize: 16.0
+  //     );
+  //     setState(() {
+  //       isLoading=false;
+  //     });
+  //     Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) =>
+  //     const Home()));
+  //   });
+  // }
 
   @override
   void initState() {
     super.initState();
-    phoneController.text="+91";
+    phoneController.text = "+91";
+    SigninPage.init();
   }
 
   @override
@@ -282,98 +327,136 @@ class _SigninPageState extends State<SigninPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         body: Center(
-          child: ListView(
-            shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(32, 48, 32, 32),
-            children: <Widget>[
-              Container(
-                alignment: Alignment.center,
-                child: Container(
-                  height: 350.0,
-                  width: 300.0,
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(36.0),
-                      image: const DecorationImage(
-                          image: AssetImage(
-                            "assets/images/signup.png",
-                          ), fit: BoxFit.cover)
+      child: ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.fromLTRB(32, 48, 32, 32),
+        children: <Widget>[
+          Container(
+            alignment: Alignment.center,
+            child: Container(
+              height: 350.0,
+              width: 300.0,
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(36.0),
+                  image: const DecorationImage(
+                      image: AssetImage(
+                        "assets/images/signup.png",
+                      ),
+                      fit: BoxFit.cover)),
+            ),
+          ),
+          const Text(
+            'Sign In',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          TextFormField(
+            keyboardType: TextInputType.phone,
+            controller: phoneController,
+            style: const TextStyle(color: Colors.black54),
+            decoration: InputDecoration(
+              focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: PRIMARY_COLOR, width: 2.0)),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFFCCCCCC)),
+              ),
+              labelText: 'Mobile number',
+              labelStyle: TextStyle(color: textColor),
+            ),
+          ),
+          TextFormField(
+            obscureText: _obscureText,
+            style: const TextStyle(color: Colors.black54),
+            controller: passController,
+            decoration: InputDecoration(
+              focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: PRIMARY_COLOR, width: 2.0)),
+              enabledBorder: const UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFFCCCCCC)),
+              ),
+              labelText: 'Password',
+              labelStyle: TextStyle(color: textColor),
+              suffixIcon: IconButton(
+                  icon: Icon(_iconVisible, color: Colors.grey, size: 20),
+                  onPressed: () {
+                    _toggleObscureText();
+                  }),
+            ),
+          ),
+          // Visibility(child: Container(
+          //   margin: EdgeInsets.only(top: 10),
+          //   child: TextField(
+          //     controller: otpController,
+          //     decoration: InputDecoration(
+          //         hintText: "Enter OTP here..."
+          //     ),
+          //     keyboardType: TextInputType.number,
+          //   ),
+          // ),visible: otpVisibility,),
+          const SizedBox(
+            height: 20,
+          ),
+          isLoading
+              ? Center(
+                  child: CircularProgressIndicator(
+                    color: PRIMARY_COLOR,
                   ),
-                ),
-              ),
-              const Text('Sign In', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),),
-              const SizedBox(
-                height: 10,
-              ),
-              TextFormField(
-                keyboardType: TextInputType.phone,
-                controller: phoneController,
-                style: const TextStyle(color: Colors.black54),
-                decoration: InputDecoration(
-                  focusedBorder: UnderlineInputBorder(
-                      borderSide:
-                      BorderSide(color: PRIMARY_COLOR, width: 2.0)),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xFFCCCCCC)),
-                  ),
-                  labelText: 'Mobile number',
-                  labelStyle: TextStyle(color: textColor),
-                ),
-              ),
-              Visibility(child: Container(
-                margin: EdgeInsets.only(top: 10),
-                child: TextField(
-                  controller: otpController,
-                  decoration: InputDecoration(
-                      hintText: "Enter OTP here..."
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-              ),visible: otpVisibility,),
-              const SizedBox(
-                height: 20,
-              ),
-              isLoading ? Center(child: CircularProgressIndicator(color: PRIMARY_COLOR,),) : ElevatedButton(
+                )
+              : ElevatedButton(
                   style: ButtonStyle(
                     backgroundColor: MaterialStateProperty.resolveWith<Color>(
-                          (Set<MaterialState> states) => PRIMARY_COLOR,
+                      (Set<MaterialState> states) => PRIMARY_COLOR,
                     ),
-                    shape: MaterialStateProperty.all(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4.0),
-                        )
-                    ),
+                    shape: MaterialStateProperty.all(RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4.0),
+                    )),
                   ),
-                  onPressed: () {
-                    if(otpVisibility){
+                  onPressed: () async {
+                    await SigninPage.init();
+                    if (phoneController.text == "+919579235986" &&
+                        passController.text == "Kartik@986") {
                       setState(() {
-                        isLoading=true;
+                        isLoading = true;
                       });
-                      verifyOTP();
-                    }
-                    else {
+                      login().then((value) {
+                      prefs.setString("isLoggedIn", "1");
+                          Navigator.pushReplacement(
+                          context, MaterialPageRoute(builder: (context) => Home()));
+                      });
+                    } else if (phoneController.text == "+917588807491" &&
+                        passController.text == "Hemant@007") {
                       setState(() {
-                        isLoading=true;
+                        isLoading = true;
                       });
-                      loginWithPhone();
+                    login().then((value) {
+                    prefs.setString("isLoggedIn", "1");
+                    Navigator.pushReplacement(
+                    context, MaterialPageRoute(builder: (context) => Home()));
+                    });
+                    } else {
+                      Fluttertoast.showToast(
+                          msg: "Check Phone no. and password");
                     }
                   },
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 4.0),
                     child: Text(
-                      otpVisibility ? "Verify" : "Login",
+                      // otpVisibility ? "Verify" :
+                      "Login",
                       style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Colors.white),
                       textAlign: TextAlign.center,
                     ),
-                  )
-              ),
-              const SizedBox(
-                height: 12,
-              ),
-            ],
+                  )),
+          const SizedBox(
+            height: 12,
           ),
-        ));
+        ],
+      ),
+    ));
   }
 }

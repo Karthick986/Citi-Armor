@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:citi_policemen/home.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'dart:io' as IO;
 import 'package:image_picker/image_picker.dart';
@@ -13,9 +16,9 @@ import 'package:record_mp3/record_mp3.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class ResolveDialog extends StatefulWidget {
-  String userId;
+  String userId, name, token;
 
-  ResolveDialog({Key? key, required this.userId}) : super(key: key);
+  ResolveDialog({Key? key, required this.userId, required this.name, required this.token}) : super(key: key);
 
   @override
   _ResolveDialogState createState() => _ResolveDialogState();
@@ -24,8 +27,7 @@ class ResolveDialog extends StatefulWidget {
 class _ResolveDialogState extends State<ResolveDialog> {
 
   String statusText = "";
-  bool isComplete = false;
-  bool showVoiceNote = false;
+  bool isComplete = false, showVoiceNote = false, isLoading=false;
 
   Future<bool> checkPermission() async {
     if (!await Permission.microphone.isGranted) {
@@ -110,6 +112,38 @@ class _ResolveDialogState extends State<ResolveDialog> {
   IO.File? _imageFile1;
   IO.File? _imageFile2;
   final picker = ImagePicker();
+
+  Future notifyUser() async {
+    String link = "https://fcm.googleapis.com/fcm/send";
+
+    var res = await http.post(Uri.parse(link),
+        headers: {
+      'Content-Type': 'application/json',
+          'accept': 'application/json',
+          'Authorization': 'key=AAAABV8o_JU:APA91bHIOVCDBmxCSY_dOFbe59GrsxI2ujxLUFD47lfmPWCsDFMM8_JqcIdPC4uizMYnTgbnlX2iPUDXY8RaczVzKJ3_DXTnVxp0VJwn2Aim-8bmuj0B7t-jyECp3f3K4BaRrdD4jXM1'
+        },
+        body: jsonEncode({
+          "to": widget.token,
+          "notification": {
+            "title": "Issue Solved",
+            "body": "Your issue is being solved by Cops!"
+          }
+        }));
+
+    if (res.statusCode==200) {
+      setState(() {
+        isLoading=false;
+      });
+      Fluttertoast.showToast(msg: "Resolved Issue, Message has sent to ${widget.name}!");
+
+      await FirebaseFirestore.instance
+          .collection("Users").doc(widget.userId)
+          .update({'lat': "0", 'long': "0"}).then((value) {
+        Navigator.pop(context);
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Home()));
+      });
+    }
+  }
 
   Future pick1Image() async {
     final pickedFile = await picker.getImage(source: ImageSource.camera);
@@ -293,7 +327,7 @@ class _ResolveDialogState extends State<ResolveDialog> {
                   width: 16,
                 ),
                 Expanded(
-                    child: ElevatedButton(
+                    child: isLoading ? Center(child: CircularProgressIndicator(color: PRIMARY_COLOR,),) : ElevatedButton(
                         style: ButtonStyle(
                           backgroundColor: MaterialStateProperty.resolveWith<Color>(
                                 (Set<MaterialState> states) => PRIMARY_COLOR,
@@ -304,13 +338,11 @@ class _ResolveDialogState extends State<ResolveDialog> {
                               )
                           ),
                         ),
-                        onPressed: () async {
-                          await FirebaseFirestore.instance
-                              .collection("Users").doc(widget.userId)
-                              .update({'lat': "0", 'long': "0"}).then((value) {
-                                Navigator.pop(context);
-                                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Home()));
+                        onPressed: () {
+                          setState(() {
+                            isLoading=true;
                           });
+                          notifyUser();
                         },
                         child: const Padding(
                           padding: EdgeInsets.symmetric(vertical: 4.0),

@@ -7,36 +7,25 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'app_constants.dart';
 import 'dart:ui' as ui;
 
-class HomePage extends StatelessWidget {
-  const HomePage({Key? key}) : super(key: key);
-
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Citi Police',
-      theme: ThemeData(
-          primaryColor: PRIMARY_COLOR,
-          primaryColorDark: PRIMARY_COLOR,
-          fontFamily: 'ABeeZee'
-      ),
-      home: Home(),
-      debugShowCheckedModeBanner: false,
-    );
-  }
-}
+late SharedPreferences prefs;
 
 class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
 
   @override
   _HomeState createState() => _HomeState();
+
+  static Future init() async {
+    prefs = await SharedPreferences.getInstance();
+  }
 }
 
 class _HomeState extends State<Home> {
@@ -72,7 +61,9 @@ class _HomeState extends State<Home> {
             "long": value["long"],
             "uid": value["uid"],
             "name": value["name"],
-            "mobile": value["mobile"]
+            "mobile": value["mobile"],
+            "datetime": value["datetime"],
+            "token": value["token"]
           });
         }
       }
@@ -90,8 +81,9 @@ class _HomeState extends State<Home> {
         },
         child: Text('No', style: TextStyle(color: PRIMARY_COLOR)));
     Widget continueButton = TextButton(
-        onPressed: () {
-          FirebaseAuth.instance.signOut();
+        onPressed: () async {
+          await Home.init();
+          prefs.setString("isLoggedIn", "0");
           Navigator.of(context).pop();
           Navigator.pushReplacement(
               context,
@@ -126,7 +118,7 @@ class _HomeState extends State<Home> {
     );
   }
 
-  _showUserInfo(lat, long, uid, name, mobile) async {
+  _showUserInfo(lat, long, uid, name, mobile, datetime, token) async {
     return await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -138,7 +130,7 @@ class _HomeState extends State<Home> {
                 borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(16.0),
                     topRight: Radius.circular(16.0))),
-            child: UserRelatedInfo(userId: uid, lat: lat, long: long, name: name, mobile: mobile,));
+            child: UserRelatedInfo(userId: uid, lat: lat, long: long, name: name, mobile: mobile, datetime: datetime, token: token,));
       },
     );
   }
@@ -200,7 +192,7 @@ class _HomeState extends State<Home> {
       double.parse(list[index]['long'].toString())),
         onTap: () {
           _showUserInfo(list[index]['lat'].toString(), list[index]['long'].toString(), list[index]['uid'].toString(), list[index]['name'].toString(),
-              list[index]['mobile'].toString());
+              list[index]['mobile'].toString(), list[index]['datetime'].toString(), list[index]['token'].toString());
         },
       );
     });
@@ -212,6 +204,7 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
+    Home.init();
     checkPermission();
     Firebase.initializeApp();
     getCloudFirestoreUsers();
@@ -226,7 +219,7 @@ class _HomeState extends State<Home> {
           color: Colors.white,
         ),
         title: const Text(
-          'Citi Police',
+          'Damini-Cop',
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: PRIMARY_COLOR,
