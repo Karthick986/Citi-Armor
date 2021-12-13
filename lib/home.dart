@@ -42,11 +42,16 @@ class _HomeState extends State<Home> {
   static List<Map<String, dynamic>> list = [];
 
   Future getLatLng() async {
+    await Home.init();
     _locationData = await location.getLocation();
     setState(() {
       lat = _locationData.latitude!;
       long = _locationData.longitude!;
     });
+    await FirebaseFirestore.instance
+        .collection("Cops")
+        .doc(prefs.getString("mobile").toString())
+        .update({"lat": lat.toString(), "long": long.toString()});
     Fluttertoast.showToast(msg: "Current Location found!");
   }
 
@@ -84,6 +89,10 @@ class _HomeState extends State<Home> {
         onPressed: () async {
           await Home.init();
           prefs.setString("isLoggedIn", "0");
+          await FirebaseFirestore.instance
+              .collection("Cops")
+              .doc(prefs.getString("mobile").toString())
+              .update({"lat": "0", "long": "0"});
           Navigator.of(context).pop();
           Navigator.pushReplacement(
               context,
@@ -205,7 +214,7 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     Home.init();
-    checkPermission();
+    checkPermission().then((value) => getLatLng());
     Firebase.initializeApp();
     getCloudFirestoreUsers();
     setMarkers(markers);

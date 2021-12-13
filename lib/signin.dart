@@ -6,7 +6,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_constants.dart';
 import 'home.dart';
@@ -60,17 +59,17 @@ class _SigninPageState extends State<SigninPage> {
       print("Firebase token: " + token!);
       deviceToken = token;
     });
+    await FirebaseFirestore.instance
+        .collection("Cops")
+        .doc(phoneController.text)
+        .set({"token": deviceToken, "mobile": phoneController.text, "lat": "0", "long": "0"});
+    setState(() {
+      isLoading = false;
+    });
     Fluttertoast.showToast(
         msg: "You are logged in successfully",
         toastLength: Toast.LENGTH_SHORT,
         fontSize: 16.0);
-    await FirebaseFirestore.instance
-        .collection("Cops")
-        .doc(phoneController.text)
-        .set({"token": deviceToken});
-    setState(() {
-      isLoading = false;
-    });
   }
 
   // final formKey = GlobalKey<FormState>();
@@ -422,6 +421,7 @@ class _SigninPageState extends State<SigninPage> {
                       });
                       login().then((value) {
                       prefs.setString("isLoggedIn", "1");
+                      prefs.setString("mobile", phoneController.text);
                           Navigator.pushReplacement(
                           context, MaterialPageRoute(builder: (context) => Home()));
                       });
@@ -432,6 +432,7 @@ class _SigninPageState extends State<SigninPage> {
                       });
                     login().then((value) {
                     prefs.setString("isLoggedIn", "1");
+                    prefs.setString("mobile", phoneController.text);
                     Navigator.pushReplacement(
                     context, MaterialPageRoute(builder: (context) => Home()));
                     });

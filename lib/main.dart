@@ -319,21 +319,21 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
                       )),
                 ),
               ),
-              Container(
-                alignment: Alignment.bottomCenter,
-                child: Text(
-                  'Developed by',
-                  style: TextStyle(color: textColor, fontSize: 13),
-                ),
-                margin: EdgeInsets.all(3.0),
-              ),
-              Container(
-                  alignment: Alignment.bottomCenter,
-                  child: Text(
-                    'Cluematrix Technologies Private Limited',
-                    style: TextStyle(color: PRIMARY_COLOR, fontSize: 15.0, fontWeight: FontWeight.bold),
-                  ),
-                  margin: EdgeInsets.only(bottom: 16.0)),
+              // Container(
+              //   alignment: Alignment.bottomCenter,
+              //   child: Text(
+              //     'Developed by',
+              //     style: TextStyle(color: textColor, fontSize: 13),
+              //   ),
+              //   margin: EdgeInsets.all(3.0),
+              // ),
+              // Container(
+              //     alignment: Alignment.bottomCenter,
+              //     child: Text(
+              //       'Cluematrix Technologies Private Limited',
+              //       style: TextStyle(color: PRIMARY_COLOR, fontSize: 15.0, fontWeight: FontWeight.bold),
+              //     ),
+              //     margin: EdgeInsets.only(bottom: 16.0)),
             ],
           ),
         ));
