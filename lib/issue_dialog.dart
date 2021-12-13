@@ -1,5 +1,11 @@
+import 'dart:convert';
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'dart:io' as IO;
 import 'package:image_picker/image_picker.dart';
 import 'app_constants.dart';
@@ -11,6 +17,7 @@ import 'package:record_mp3/record_mp3.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'home.dart';
+import 'package:http/http.dart' as http;
 
 class IssueDialog extends StatefulWidget {
 
@@ -22,9 +29,92 @@ class IssueDialog extends StatefulWidget {
 
 class _IssueDialogState extends State<IssueDialog> {
 
-  String statusText = "";
-  bool isComplete = false;
-  bool showVoiceNote = false;
+  String statusText = "", lat="0", long="0";
+  bool isComplete = false, showVoiceNote = false, isLoading=true;
+
+  _callNumber(String number) async {
+    await FlutterPhoneDirectCaller.callNumber(number);
+  }
+
+  String token="";
+  static List<Map<String, dynamic>> list = [];
+  static List<String> shortlist = [];
+
+  double calculateDistance(lat1, lon1, lat2, lon2){
+    var p = 0.017453292519943295;
+    var c = cos;
+    var a = 0.5 - c((lat2 - lat1) * p)/2 +
+        c(lat1 * p) * c(lat2 * p) *
+            (1 - c((lon2 - lon1) * p))/2;
+    return 12742 * asin(sqrt(a));
+  }
+
+  Future getData() async {
+    var document = FirebaseFirestore.instance.collection("Users").doc(FirebaseAuth.instance.currentUser!.uid);
+    document.get().then((value) {
+      setState(() {
+        lat = value["lat"];
+        long = value["long"];
+      });
+    });
+  }
+
+  Future getCloudFirestoreCops() async {
+    await Firebase.initializeApp();
+    FirebaseFirestore.instance.collection("Cops").get().then((querySnapshot) {
+      setState(() {
+        for (var value in querySnapshot.docs) {
+          if (value["lat"]!="0" && value["long"]!="0") {
+            // double distance = calculateDistance(lat, long, double.parse((value["lat"].toString())), double.parse((value["long"].toString())));
+            list.add({
+              "token": value["token"],
+              "lat": value["lat"],
+              "long": value["long"],
+            });
+          }
+        }
+      });
+    }).catchError((onError) {
+      print(onError);
+    });
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  Future notifyUser() async {
+    String link = "https://fcm.googleapis.com/fcm/send";
+
+    if (list.isNotEmpty) {
+      var res = await http.post(Uri.parse(link),
+          headers: {
+            'Content-Type': 'application/json',
+            'accept': 'application/json',
+            'Authorization': 'key=AAAABV8o_JU:APA91bHIOVCDBmxCSY_dOFbe59GrsxI2ujxLUFD47lfmPWCsDFMM8_JqcIdPC4uizMYnTgbnlX2iPUDXY8RaczVzKJ3_DXTnVxp0VJwn2Aim-8bmuj0B7t-jyECp3f3K4BaRrdD4jXM1'
+          },
+          body: jsonEncode({
+            "to": list[0]["token"],
+            "notification": {
+              "title": "Raised Issue",
+              "body": "Your issue is undertaken by Cops!"
+            }
+          }));
+
+      if (res.statusCode == 200) {
+        setState(() {
+          isLoading = false;
+        });
+        Fluttertoast.showToast(msg: "Raised Issue, Message has sent to a Cop!");
+        Navigator.pop(context);
+      }
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+      Fluttertoast.showToast(msg: "Raised Issue, Message is on hold to receive nearby Cops!");
+      Navigator.pop(context);
+    }
+  }
 
   Future<bool> checkPermission() async {
     if (!await Permission.microphone.isGranted) {
@@ -122,6 +212,13 @@ class _IssueDialogState extends State<IssueDialog> {
     setState(() {
       _imageFile2 = IO.File(pickedFile!.path);
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // getData();
+    getCloudFirestoreCops();
   }
 
   @override
@@ -276,7 +373,6 @@ class _IssueDialogState extends State<IssueDialog> {
                     ),
                     onPressed: () {
                       Navigator.of(context).pop();
-                      Navigator.pushReplacement(context, PageRouteBuilder(pageBuilder: (_, __, ___) => Home()));
                     },
                     child: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 4.0),
@@ -293,7 +389,7 @@ class _IssueDialogState extends State<IssueDialog> {
               width: 16,
             ),
             Expanded(
-                child: ElevatedButton(
+                child: isLoading ? Center(child: CircularProgressIndicator(color: PRIMARY_COLOR,),) : ElevatedButton(
                     style: ButtonStyle(
                       backgroundColor: MaterialStateProperty.resolveWith<Color>(
                             (Set<MaterialState> states) => PRIMARY_COLOR,
@@ -305,8 +401,13 @@ class _IssueDialogState extends State<IssueDialog> {
                       ),
                     ),
                     onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pushReplacement(context, PageRouteBuilder(pageBuilder: (_, __, ___) => Home()));
+                        setState(() {
+                          isLoading=true;
+                        });
+                        notifyUser().then((value) {
+                          Fluttertoast.showToast(msg: "Calling central number");
+                          _callNumber("+917588807491");
+                        });
                     },
                     child: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 4.0),

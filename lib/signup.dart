@@ -414,7 +414,7 @@ class _SignupPageState extends State<SignupPage> {
       await FirebaseFirestore.instance
           .collection("Users").doc(auth.currentUser!.uid)
           .set({'name': nameController.text, 'mobile': phoneController.text, "lat": "0", "long": "0",
-        "uid": auth.currentUser!.uid.toString(), "gender": _gender, "age": ageController.text, "token": deviceToken});
+        "uid": auth.currentUser!.uid.toString(), "gender": _gender, "age": ageController.text, "token": deviceToken, "datetime": ""});
       setState(() {
         isLoading=false;
       });

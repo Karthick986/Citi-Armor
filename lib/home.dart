@@ -6,9 +6,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:intl/intl.dart';
 import 'package:location/location.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'issue_dialog.dart';
 
 late SharedPreferences prefs;
@@ -45,12 +45,14 @@ class _HomeState extends State<Home> {
       lat = _locationData.latitude.toString();
       long = _locationData.longitude.toString();
     });
+    DateFormat dateFormat = DateFormat("yyyy-MM-dd, HH:mm");
+    String dateTime = dateFormat.format(DateTime.now());
     Navigator.pop(context);
     if (lat.isNotEmpty && long.isNotEmpty) {
       Fluttertoast.showToast(msg: "Current Location found!");
       await FirebaseFirestore.instance
           .collection("Users").doc(FirebaseAuth.instance.currentUser!.uid)
-          .update({'lat': lat, 'long': long});
+          .update({'lat': lat, 'long': long, "datetime": dateTime});
       _showResolve(context);
     } else {
       Fluttertoast.showToast(msg: "Location not found!");
@@ -155,7 +157,6 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -170,7 +171,16 @@ class _HomeState extends State<Home> {
           )
         ],
       ),
-        body: lat.isEmpty || long.isEmpty ? Center(
+        body: RefreshIndicator(
+          strokeWidth: 2,
+          color: PRIMARY_COLOR,
+          onRefresh: () async {
+            await Future.delayed(Duration(milliseconds: 1000));
+            Navigator.pushReplacement(
+                context,
+                PageRouteBuilder(
+                    pageBuilder: (_, __, ___) => Home()));
+          }, child: lat.isEmpty || long.isEmpty ? Center(
       child: CircularProgressIndicator(color: PRIMARY_COLOR,),) : (lat!="0"&&long!="0")
           ? Column(
               children: [
@@ -190,7 +200,7 @@ class _HomeState extends State<Home> {
                           onPressed: () async {
                             await FirebaseFirestore.instance
                                 .collection("Users").doc(FirebaseAuth.instance.currentUser!.uid)
-                                .update({'lat': "0", 'long': "0"});
+                                .update({'lat': "0", 'long': "0", "datetime": ""});
                             Navigator.pushReplacement(context, PageRouteBuilder(pageBuilder: (_, __, ___) => Home()));
                           },
                         )),
@@ -211,7 +221,7 @@ class _HomeState extends State<Home> {
                         onPressed: () async {
                           await FirebaseFirestore.instance
                               .collection("Users").doc(FirebaseAuth.instance.currentUser!.uid)
-                              .update({'lat': "0", 'long': "0"});
+                              .update({'lat': "0", 'long': "0", "datetime": ""});
                           Navigator.pushReplacement(context, PageRouteBuilder(pageBuilder: (_, __, ___) => Home()));
                         },
                       ),
@@ -235,6 +245,6 @@ class _HomeState extends State<Home> {
                   },
                 )),
           ),
-    );
+    ));
   }
 }

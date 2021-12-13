@@ -155,7 +155,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(home: SplashScreenPage(),
-      title: "Citi Aromor",
+      title: "Damini User",
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
           primaryColor: PRIMARY_COLOR,
@@ -304,22 +304,15 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
-                            width: 150.0,
-                            height: 150.0,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(100.0),
-                            ),
-                            child: FlutterLogo(size: MediaQuery.of(context).size.width/2,),
-                          ),
-                          Container(
-                            child: Text(
-                              'Damini-User',
-                              style: TextStyle(
-                                  color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.bold),
-                            ),
-                            margin: EdgeInsets.only(top: 10.0),
-                          )
+                          Image.asset('assets/images/splash.png', width: MediaQuery.of(context).size.width, height: MediaQuery.of(context).size.width),
+                          // Container(
+                          //   child: Text(
+                          //     'Damini-User',
+                          //     style: TextStyle(
+                          //         color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.bold),
+                          //   ),
+                          //   margin: EdgeInsets.only(top: 10.0),
+                          // )
                         ],
                       )),
                 ),
